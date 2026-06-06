@@ -52,8 +52,8 @@ details .field{margin-top:8px;}
 .ath-card-body{flex:1;padding:14px 16px;}
 .ath-name{font-size:15px;font-weight:600;}
 .ath-sub{font-size:12px;color:var(--text2);margin-top:3px;}
-.ath-fav-btn{padding:14px 14px;background:none;border:none;cursor:pointer;font-size:22px;line-height:1;flex-shrink:0;opacity:0.5;transition:opacity .15s;}
-.ath-fav-btn.active{opacity:1;}
+.ath-fav-btn{padding:12px 14px;background:none;border:none;cursor:pointer;font-size:28px;line-height:1;flex-shrink:0;color:rgba(255,255,255,0.25);transition:color .15s;text-shadow:0 0 0 2px rgba(255,255,255,0.15);}
+.ath-fav-btn.active{color:#f59e0b;text-shadow:none;}
 .ath-arrow{font-size:14px;color:var(--text3);padding-right:14px;}
 
 /* FAVOURITES TAB */
@@ -78,8 +78,8 @@ details .field{margin-top:8px;}
 .back-btn{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);background:none;border:none;cursor:pointer;padding:8px 0 16px;font-family:inherit;}
 .ath-hero{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:16px;}
 .ath-avatar{width:48px;height:48px;border-radius:50%;background:rgba(59,141,224,0.15);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--accent);flex-shrink:0;}
-.ath-hero-fav{margin-left:auto;background:none;border:none;cursor:pointer;font-size:28px;line-height:1;opacity:0.5;transition:opacity .15s;}
-.ath-hero-fav.active{opacity:1;}
+.ath-hero-fav{margin-left:auto;background:none;border:none;cursor:pointer;font-size:32px;line-height:1;color:rgba(255,255,255,0.25);transition:color .15s;}
+.ath-hero-fav.active{color:#f59e0b;}
 .pb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-bottom:12px;}
 .pb-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;transition:border-color .15s;}
 .pb-card.active{border-color:var(--accent);}
@@ -297,7 +297,7 @@ function renderFavBtn() {
   const btn = document.getElementById('ath-hero-fav');
   if (!btn || !currentAthlete) return;
   const fav = isFav(currentAthlete.id);
-  btn.textContent = fav ? '⭐' : '☆';
+  btn.textContent = '★';
   btn.className = 'ath-hero-fav' + (fav ? ' active' : '');
 }
 function renderFavView() {
@@ -427,7 +427,7 @@ async function searchAtleti(page) {
           <div class="ath-name">${a.nome}</div>
           <div class="ath-sub">n. ${a.nascita}</div>
         </div>
-        <button class="ath-fav-btn${fav?' active':''}" id="fav-btn-${a.id}" onclick="quickFav('${a.id}','${a.nome.replace(/'/g,"\\'")}','${a.nascita}')" title="${fav?'Rimuovi dai preferiti':'Aggiungi ai preferiti'}">${fav?'⭐':'☆'}</button>
+        <button class="ath-fav-btn${fav?' active':''}" id="fav-btn-${a.id}" onclick="quickFav('${a.id}','${a.nome.replace(/'/g,"\\'")}','${a.nascita}')" title="${fav?'Rimuovi dai preferiti':'Aggiungi ai preferiti'}">${fav?'★':'★'}</button>
         <span class="ath-arrow" onclick="openAthPage('${a.id}','${a.nome.replace(/'/g,"\\'")}','${a.nascita}')">›</span>
       </div>`;
     }).join('') : '<div class="empty"><div class="empty-icon">🏊</div>Nessun atleta trovato</div>';
@@ -446,7 +446,7 @@ function quickFav(id, nome, nascita) {
   const btn = document.getElementById('fav-btn-' + id);
   if (btn) {
     const fav = isFav(id);
-    btn.textContent = fav ? '⭐' : '☆';
+    btn.textContent = '★';
     btn.className = 'ath-fav-btn' + (fav ? ' active' : '');
   }
 }
@@ -471,7 +471,7 @@ async function openAthPage(id, nome, nascita) {
       <p style="font-size:17px;font-weight:600;margin:0 0 3px;">${nome}</p>
       <p id="ath-hero-meta" style="font-size:12px;color:var(--text2);margin:0;">n. ${nascita}</p>
     </div>
-    <button class="ath-hero-fav${fav?' active':''}" id="ath-hero-fav" onclick="toggleFavFromPage()" title="${fav?'Rimuovi':'Aggiungi ai preferiti'}">${fav?'⭐':'☆'}</button>`;
+    <button class="ath-hero-fav${fav?' active':''}" id="ath-hero-fav" onclick="toggleFavFromPage()" title="${fav?'Rimuovi':'Aggiungi ai preferiti'}">${fav?'★':'★'}</button>`;
   document.getElementById('ath-page').classList.add('open');
   document.body.style.overflow='hidden';
   const stag = document.getElementById('a-stagione').value;
