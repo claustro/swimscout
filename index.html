@@ -298,7 +298,7 @@
       <div class="grid2">
         <div class="field">
           <label>Cognome *</label>
-          <input type="text" id="a-cognome" placeholder="es. giannozzi" autocomplete="off" autocorrect="off" autocapitalize="off">
+          <input type="text" id="a-cognome" placeholder="Cognome atleta" autocomplete="off" autocorrect="off" autocapitalize="off">
         </div>
         <div class="field">
           <label>Nome</label>
@@ -309,8 +309,8 @@
         <div class="field">
           <label>Sesso</label>
           <select id="a-sesso">
-<option value="">Tutti</option>
-<option value="M" selected>M</option>
+            <option value="">Tutti</option>
+            <option value="M">M</option>
             <option value="F">F</option>
           </select>
         </div>
@@ -637,12 +637,13 @@ async function searchAtleti(page) {
   statusEl.innerHTML = '<span style="color:var(--text2)">Ricerca in corso...</span>';
 
   try {
-    const data = await callProxy('gratleta', params, page);
-    if (data.status !== 'OK') throw new Error('Risposta FIN non valida');
-    const doc = parseHTML(data.content || '');
-    const athletes = parseAthletes(doc);
-    statusEl.innerHTML = `<span>${athletes.length} atleti trovati</span><span style="font-size:11px;color:var(--text3)">Tap per espandere</span>`;
-    listEl.innerHTML = athletes.length ? athletes.map((a, i) => renderAthCard(a, i)).join('') : '<div class="empty"><div class="empty-icon">🏊</div>Nessun atleta trovato</div>';
+    // Step 1: grricerca per lista atleti con ID
+    const dataRicerca = await callProxy('grricerca', params, page);
+    if (dataRicerca.status !== 'OK') throw new Error('Risposta FIN non valida');
+    const docRicerca = parseHTML(dataRicerca.content || '');
+    const athletes = parseAthletesList(docRicerca);
+    statusEl.innerHTML = `<span>${athletes.length} atleti trovati</span><span style="font-size:11px;color:var(--text3)">Tap per espandere — carica PB</span>`;
+    listEl.innerHTML = athletes.length ? athletes.map((a, i) => renderAthCardLight(a, i)).join('') : '<div class="empty"><div class="empty-icon">🏊</div>Nessun atleta trovato</div>';
     if (athletes.length >= 20) {
       pagesEl.innerHTML = `
         <button class="page-btn" ${page <= 1 ? 'disabled' : ''} onclick="searchAtleti(${page-1})">← Prec</button>
@@ -654,6 +655,93 @@ async function searchAtleti(page) {
     listEl.innerHTML = `<div class="error-box">Errore: ${e.message}<br><small style="opacity:0.7;margin-top:4px;display:block;">Verifica che il Worker Cloudflare sia deployato correttamente.</small></div>`;
   }
   setLoading('a-btn-icon', 'a-btn-text', false, '🔍', 'Cerca');
+}
+
+function parseAthletesList(doc) {
+  const out = [];
+  doc.querySelectorAll('.row').forEach(row => {
+    const el = row.querySelector('.atleta .collegamento');
+    if (!el) return;
+    const nascitaEl = row.querySelector('.nascita span');
+    out.push({
+      nome: el.textContent.trim(),
+      id: el.dataset.id || '',
+      nascita: nascitaEl ? nascitaEl.textContent.trim() : '',
+      societa: '',
+      pbs: []
+    });
+  });
+  return out;
+}
+
+function renderAthCardLight(a, i) {
+  return `<div class="ath-card" id="ath-${i}">
+    <div class="ath-header" onclick="loadAthlete(${i}, '${a.id}', '${a.nome.replace(/'/g,"\\'")}')">
+      <div style="min-width:0">
+        <div class="ath-name">${a.nome}</div>
+        <div class="ath-sub">n. ${a.nascita}</div>
+        ${a.id ? `<div class="ath-id">ID ${a.id}</div>` : ''}
+      </div>
+      <div class="ath-right">
+        <span class="pb-count">Tap PB</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div class="ath-body">
+      <div id="ath-detail-${i}"></div>
+    </div>
+  </div>`;
+}
+
+async function loadAthlete(i, athId, nome) {
+  const card = document.getElementById('ath-' + i);
+  card.classList.toggle('open');
+  if (!card.classList.contains('open')) return;
+  const detail = document.getElementById('ath-detail-' + i);
+  if (detail.dataset.loaded) return;
+  detail.innerHTML = '<div style="padding:10px;color:var(--text2);font-size:13px;display:flex;align-items:center;gap:8px;"><div class="spinner"></div>Carico PB...</div>';
+  const stag = document.getElementById('a-stagione').value;
+  const anno = stagToAnno(stag);
+  const params = {
+    sesso: document.getElementById('a-sesso').value || 'M',
+    id_lunghezza_vasca: document.getElementById('a-vasca').value,
+    kindtime: '1',
+    stagione: stag === '0' ? '' : stag,
+    anno: anno === '0' ? '' : anno,
+    settore: 'NUO',
+    cognome: nome.split(' ')[0],
+    all: '0',
+    limit: '20',
+    id_atleta: athId
+  };
+  try {
+    const data = await callProxy('gratleta', params);
+    if (data.status !== 'OK') throw new Error('FIN non valido');
+    const doc = parseHTML(data.content || '');
+    const athletes = parseAthletes(doc);
+    if (athletes.length > 0) {
+      const a = athletes[0];
+      const pbRows = a.pbs.map(pb => `
+        <tr>
+          <td><button class="spec-btn" onclick="loadStorico(${i},'${athId}','${pb.codice}','${pb.spec.replace(/'/g,"\'")}',this)">${pb.spec}</button></td>
+          <td><span class="tempo">${pb.tempo}</span></td>
+          <td style="white-space:nowrap;font-size:12px;color:var(--text2)">${pb.data}</td>
+          <td><button class="evento-btn" onclick="loadEvento(${i},'${athId}','${pb.codice}','${pb.idEvento}',this)">${pb.luogo}<br>${pb.evento.substring(0,40)}${pb.evento.length>40?'…':''}</button></td>
+        </tr>`).join('');
+      detail.innerHTML = `
+        <div style="padding:0 0 8px;font-size:12px;color:var(--text2)">${a.societa}${a.nascita?' · '+a.nascita:''}</div>
+        ${a.pbs.length ? `<div style="overflow-x:auto"><table class="pb-table">
+          <thead><tr><th>Specialità</th><th>PB</th><th>Data</th><th>Gara</th></tr></thead>
+          <tbody>${pbRows}</tbody>
+        </table></div>` : '<div style="font-size:13px;color:var(--text2)">Nessun PB registrato</div>'}
+        <div id="ath-detail2-${i}"></div>`;
+      detail.dataset.loaded = '1';
+    } else {
+      detail.innerHTML = '<div style="font-size:13px;color:var(--text2);padding:8px">Nessun dato disponibile</div>';
+    }
+  } catch(e) {
+    detail.innerHTML = `<div class="error-box">Errore: ${e.message}</div>`;
+  }
 }
 
 function parseAthletes(doc) {
@@ -725,7 +813,8 @@ function toggleAth(i) {
 }
 
 async function loadStorico(i, athId, codice, specName, btn) {
-  const detail = document.getElementById('ath-detail-' + i);
+  const detail = document.getElementById('ath-detail2-' + i) || document.getElementById('ath-detail-' + i);
+  if (!detail) return;
   const key = `storico-${athId}-${codice}`;
   if (detail.dataset.open === key) {
     detail.innerHTML = '';
@@ -785,7 +874,8 @@ async function loadStorico(i, athId, codice, specName, btn) {
 
 async function loadEvento(i, athId, codice, idEvento, btn) {
   if (!idEvento) { toast('ID evento non disponibile'); return; }
-  const detail = document.getElementById('ath-detail-' + i);
+  const detail = document.getElementById('ath-detail2-' + i) || document.getElementById('ath-detail-' + i);
+  if (!detail) return;
   const key = `evento-${idEvento}-${codice}`;
   if (detail.dataset.open === key) {
     detail.innerHTML = '';
