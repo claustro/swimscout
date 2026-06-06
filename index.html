@@ -539,7 +539,7 @@ async function loadSpecialty(codice, specName) {
   document.getElementById('stats-row').innerHTML='';
   document.getElementById('results-list').style.display='none';
   if (chartInst) { chartInst.destroy(); chartInst = null; }
-  const params = {sesso: document.getElementById('a-sesso').value||'M', id_lunghezza_vasca:'0', kindtime:'1', stagione:'', anno:'', settore:'NUO', codice_gara:codice, all:'1', limit:'100', id_atleta:currentAthlete.id};
+  const params = {sesso: document.getElementById('a-sesso').value||'M', id_lunghezza_vasca:'0', kindtime:'1', stagione:'', anno:'', settore:'NUO', codice_gara:codice, all:'0', limit:'100', id_atleta:currentAthlete.id};
   try {
     const data = await callProxy('grspecialitaatleta', params);
     const doc = parseHTML(data.content||'');
