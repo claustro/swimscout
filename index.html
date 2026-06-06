@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SwimScout">
+<meta name="theme-color" content="#0a1628">
+<link rel="manifest" href="manifest.json">
+<title>SwimScout</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{--bg:#0a1628;--surface:#111d35;--surface2:#1a2a45;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);--text:#e8edf5;--text2:#8899bb;--text3:#556688;--accent:#3b8de0;--accent2:#1a6bc4;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;--radius:12px;--radius-sm:8px;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;overscroll-behavior:none;}
+
+/* NAV */
+.nav{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:0.5px solid var(--border);padding:0 16px;display:flex;align-items:center;height:52px;gap:0;}
+.nav-logo{font-size:17px;font-weight:700;margin-right:auto;letter-spacing:-0.3px;}
+.nav-logo span{color:var(--accent);}
+.nav-logo small{font-size:10px;font-weight:400;color:var(--text3);margin-left:4px;}
+.nav-tabs{display:flex;gap:2px;}
+.nav-tab{padding:6px 10px;font-size:13px;border-radius:var(--radius-sm);border:none;background:none;color:var(--text2);cursor:pointer;white-space:nowrap;}
+.nav-tab.active{background:var(--surface2);color:var(--text);}
+.nav-badge{background:var(--amber);color:#000;font-size:10px;font-weight:700;padding:1px 5px;border-radius:99px;margin-left:3px;vertical-align:1px;}
+
+/* VIEWS */
+.view{display:none;}.view.active{display:block;}
+.main{max-width:680px;margin:0 auto;padding:16px;}
+
+/* FORM */
+.card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:12px;}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;}
+.field label{font-size:12px;color:var(--text2);}
+.field input,.field select{background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:14px;width:100%;-webkit-appearance:none;outline:none;}
+.field input::placeholder{color:var(--text3);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+details summary{font-size:13px;color:var(--text2);cursor:pointer;padding:8px 0;list-style:none;display:flex;align-items:center;gap:6px;}
+details summary::before{content:'▸';font-size:10px;transition:transform .2s;}
+details[open] summary::before{transform:rotate(90deg);}
+details .field{margin-top:8px;}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;border:none;width:100%;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:active{background:var(--accent2);transform:scale(.98);}
+.btn-ghost{background:var(--surface2);color:var(--text2);border:0.5px solid var(--border2);}
+.btn-row{display:flex;gap:8px;}
+.btn-row .btn-ghost{width:auto;padding:12px 16px;}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.status-bar{font-size:12px;color:var(--text2);display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:0 2px;}
+
+/* ATHLETE LIST */
+.ath-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:8px;display:flex;align-items:center;overflow:hidden;transition:border-color .15s;}
+.ath-card:hover{border-color:var(--border2);}
+.ath-card-body{flex:1;padding:14px 16px;cursor:pointer;}
+.ath-name{font-size:15px;font-weight:600;}
+.ath-sub{font-size:12px;color:var(--text2);margin-top:3px;}
+.ath-fav-btn{padding:12px 14px;background:none;border:none;cursor:pointer;font-size:26px;line-height:1;flex-shrink:0;color:rgba(255,255,255,0.2);transition:color .15s;}
+.ath-fav-btn.active{color:var(--amber);}
+.ath-arrow{font-size:16px;color:var(--text3);padding-right:14px;cursor:pointer;}
+
+/* ATHLETE DETAIL PAGE */
+.ath-page{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:200;overflow-y:auto;}
+.ath-page.open{display:block;}
+.ath-page-inner{max-width:680px;margin:0 auto;padding:16px;}
+.back-btn{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);background:none;border:none;cursor:pointer;padding:4px 0 16px;font-family:inherit;}
+
+/* HERO */
+.ath-hero{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:4px;display:flex;align-items:center;gap:14px;}
+.ath-avatar{width:46px;height:46px;border-radius:50%;background:rgba(59,141,224,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--accent);flex-shrink:0;}
+.ath-hero-name{font-size:16px;font-weight:600;margin:0 0 2px;}
+.ath-hero-meta{font-size:12px;color:var(--text2);margin:0;}
+.ath-hero-fav{margin-left:auto;background:none;border:none;cursor:pointer;font-size:30px;line-height:1;color:rgba(255,255,255,0.2);transition:color .15s;flex-shrink:0;}
+.ath-hero-fav.active{color:var(--amber);}
+
+/* VASCA SELECTOR — controllo globale */
+.vasca-global{display:flex;align-items:center;gap:8px;padding:10px 16px;margin-bottom:12px;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);}
+.vasca-global-label{font-size:12px;color:var(--text2);flex:1;}
+.vasca-toggle{display:flex;gap:4px;}
+.vtoggle{font-size:13px;padding:5px 14px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:none;cursor:pointer;color:var(--text2);font-weight:500;}
+.vtoggle.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+/* PB GRID */
+.pb-section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin:0 0 8px;padding:0 2px;}
+.pb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-bottom:12px;}
+.pb-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;transition:border-color .15s;}
+.pb-card.active{border-color:var(--accent);background:rgba(59,141,224,0.06);}
+.pb-card:hover{border-color:var(--border2);}
+.pb-spec{font-size:11px;color:var(--text2);margin:0 0 4px;}
+.pb-time{font-size:15px;font-weight:600;font-family:monospace;margin:0;color:var(--text);}
+.pb-time-alt{font-size:11px;color:var(--text3);font-family:monospace;margin:2px 0 0;}
+
+/* CHART */
+.chart-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.chart-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;}
+.chart-title{font-size:14px;font-weight:600;color:var(--text);}
+.chart-hint{font-size:11px;color:var(--text3);margin-bottom:12px;}
+.loading-chart{display:flex;align-items:center;justify-content:center;gap:10px;height:200px;color:var(--text2);font-size:13px;}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.stat-card{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;}
+.stat-label{font-size:11px;color:var(--text2);margin:0 0 4px;}
+.stat-val{font-size:16px;font-weight:600;margin:0;font-family:monospace;}
+
+/* YEAR DIVIDERS in results */
+.results-list{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:24px;}
+.results-list table{width:100%;border-collapse:collapse;font-size:13px;}
+.results-list th{font-size:11px;color:var(--text3);font-weight:500;padding:8px 12px;border-bottom:0.5px solid var(--border);text-align:left;}
+.results-list td{padding:8px 12px;border-bottom:0.5px solid var(--border);}
+.results-list tr:last-child td{border-bottom:none;}
+.year-divider td{background:var(--surface2);font-size:11px;font-weight:600;color:var(--text3);padding:5px 12px;letter-spacing:.05em;text-transform:uppercase;border-bottom:0.5px solid var(--border);}
+.pb-badge{font-size:10px;background:rgba(34,197,94,0.15);color:var(--green);padding:2px 6px;border-radius:99px;margin-left:6px;font-weight:600;}
+
+/* FAVOURITES */
+.fav-empty{text-align:center;padding:60px 20px;color:var(--text2);}
+.fav-empty-icon{font-size:40px;margin-bottom:12px;}
+.fav-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;}
+.fav-card-header{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;}
+.fav-avatar{width:40px;height:40px;border-radius:50%;background:rgba(59,141,224,0.15);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--accent);flex-shrink:0;}
+.fav-name{font-size:14px;font-weight:600;margin:0 0 2px;}
+.fav-meta{font-size:12px;color:var(--text2);margin:0;}
+.fav-remove{margin-left:auto;background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:4px;flex-shrink:0;}
+.fav-pbs{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 14px;}
+.fav-pb-pill{background:var(--surface2);border-radius:var(--radius-sm);padding:4px 10px;font-size:12px;display:flex;gap:6px;align-items:center;}
+.fav-pb-spec{color:var(--text2);}
+.fav-pb-time{font-family:monospace;font-weight:600;}
+.fav-pb-vasca{font-size:10px;color:var(--text3);background:var(--bg);padding:1px 5px;border-radius:99px;}
+
+/* GRAD */
+.grad-wrap{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.grad-wrap table{width:100%;border-collapse:collapse;font-size:13px;}
+.grad-wrap th{font-size:11px;color:var(--text3);font-weight:500;text-align:left;padding:10px 12px;border-bottom:0.5px solid var(--border);}
+.grad-wrap td{padding:9px 12px;border-bottom:0.5px solid var(--border);}
+.grad-wrap tr:last-child td{border-bottom:none;}
+.tempo-mono{font-weight:600;font-family:monospace;font-size:14px;}
+
+/* MISC */
+.empty{text-align:center;padding:40px 20px;color:var(--text2);font-size:14px;}
+.empty-icon{font-size:32px;margin-bottom:8px;}
+.error-box{background:rgba(239,68,68,0.1);border:0.5px solid rgba(239,68,68,0.3);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;color:#fca5a5;}
+.pagination{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:16px;font-size:13px;color:var(--text2);}
+.page-btn{background:var(--surface2);border:0.5px solid var(--border2);color:var(--text);padding:8px 14px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;}
+.page-btn:disabled{opacity:.3;cursor:default;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface2);border:0.5px solid var(--border2);color:var(--text);padding:10px 18px;border-radius:99px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+@media(max-width:480px){.grid3{grid-template-columns:1fr 1fr;}.main{padding:12px;}.ath-page-inner{padding:12px;}.stats-row{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">Swim<span>Scout</span><small>v0.9</small></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tab-atleti" onclick="showView('atleti',this)">Atleti</button>
+    <button class="nav-tab" id="tab-preferiti" onclick="showView('preferiti',this)">⭐<span id="fav-badge"></span></button>
+    <button class="nav-tab" id="tab-grad" onclick="showView('graduatorie',this)">Graduatorie</button>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- ATLETI -->
+  <div class="view active" id="view-atleti">
+    <div class="card">
+      <div class="card-title">Cerca atleta</div>
+      <div class="grid2">
+        <div class="field"><label>Cognome *</label><input type="text" id="a-cognome" placeholder="Cognome atleta" autocomplete="off" autocorrect="off" autocapitalize="off"></div>
+        <div class="field"><label>Nome</label><input type="text" id="a-nome" placeholder="Facoltativo" autocomplete="off" autocorrect="off" autocapitalize="off"></div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label>Sesso</label>
+          <select id="a-sesso"><option value="M">Maschile</option><option value="F">Femminile</option><option value="">Tutti</option></select>
+        </div>
+        <div class="field"><label>Vasca</label>
+          <select id="a-vasca"><option value="2">50m</option><option value="1">25m</option></select>
+        </div>
+        <div class="field"><label>Stagione</label>
+          <select id="a-stagione"><option value="2025">2025-26</option><option value="2024">2024-25</option><option value="2023">2023-24</option><option value="2022">2022-23</option><option value="0">Tutte</option></select>
+        </div>
+      </div>
+      <details>
+        <summary>Filtri avanzati</summary>
+        <div class="grid2" style="margin-top:8px;">
+          <div class="field"><label>Anno nasc. da</label><input type="number" id="a-dalyob" placeholder="es. 2008" min="1960" max="2020"></div>
+          <div class="field"><label>Anno nasc. a</label><input type="number" id="a-alyob" placeholder="es. 2012" min="1960" max="2020"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Specialità</label>
+            <select id="a-codice-gara">
+              <option value="">Tutte</option>
+              <option value="00">50 Stile Libero</option><option value="01">100 Stile Libero</option><option value="02">200 Stile Libero</option><option value="03">400 Stile Libero</option><option value="05">800 Stile Libero</option><option value="06">1500 Stile Libero</option>
+              <option value="20">50 Dorso</option><option value="21">100 Dorso</option><option value="22">200 Dorso</option>
+              <option value="30">50 Rana</option><option value="31">100 Rana</option><option value="32">200 Rana</option>
+              <option value="40">50 Farfalla</option><option value="41">100 Farfalla</option><option value="42">200 Farfalla</option>
+              <option value="51">200 Misti</option><option value="53">400 Misti</option>
+            </select>
+          </div>
+          <div class="field"><label>Comitato</label>
+            <select id="a-comitato"><option value="">Nazionale</option><option value="8">Toscana</option><option value="1">Piemonte/VdA</option><option value="2">Lombardia</option><option value="7">Emilia Romagna</option><option value="11">Lazio</option><option value="4">Veneto</option><option value="14">Campania</option><option value="18">Sicilia</option></select>
+          </div>
+        </div>
+      </details>
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn btn-primary" id="a-btn" onclick="searchAtleti(1)">🔍 Cerca</button>
+        <button class="btn btn-ghost" onclick="resetAtleti()">Reset</button>
+      </div>
+    </div>
+    <div id="atleti-results" style="display:none;">
+      <div class="status-bar" id="atleti-status"></div>
+      <div id="atleti-list"></div>
+      <div class="pagination" id="atleti-pages"></div>
+    </div>
+  </div>
+
+  <!-- PREFERITI -->
+  <div class="view" id="view-preferiti">
+    <div id="fav-list"></div>
+  </div>
+
+  <!-- GRADUATORIE -->
+  <div class="view" id="view-graduatorie">
+    <div class="card">
+      <div class="card-title">Graduatorie / Primati</div>
+      <div class="grid2">
+        <div class="field"><label>Sesso</label><select id="g-sesso"><option value="M">Maschile</option><option value="F">Femminile</option></select></div>
+        <div class="field"><label>Vasca</label><select id="g-vasca"><option value="2">50m</option><option value="1">25m</option></select></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Stagione</label><select id="g-stagione"><option value="2025">2025-26</option><option value="2024">2024-25</option><option value="2023">2023-24</option><option value="0">Tutte</option></select></div>
+        <div class="field"><label>Specialità</label>
+          <select id="g-codice-gara">
+            <option value="">Tutte</option>
+            <option value="00">50 Stile Libero</option><option value="01">100 Stile Libero</option><option value="02">200 Stile Libero</option><option value="03">400 Stile Libero</option>
+            <option value="20">50 Dorso</option><option value="21">100 Dorso</option><option value="22">200 Dorso</option>
+            <option value="30">50 Rana</option><option value="31">100 Rana</option><option value="32">200 Rana</option>
+            <option value="40">50 Farfalla</option><option value="41">100 Farfalla</option><option value="42">200 Farfalla</option>
+            <option value="51">200 Misti</option><option value="53">400 Misti</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Anno nasc. da</label><input type="number" id="g-dalyob" placeholder="es. 2008"></div>
+        <div class="field"><label>Anno nasc. a</label><input type="number" id="g-alyob" placeholder="es. 2012"></div>
+      </div>
+      <div class="field"><label>Comitato</label>
+        <select id="g-comitato"><option value="">Nazionale</option><option value="8">Toscana</option><option value="1">Piemonte/VdA</option><option value="2">Lombardia</option><option value="7">Emilia Romagna</option><option value="11">Lazio</option></select>
+      </div>
+      <button class="btn btn-primary" id="g-btn" style="margin-top:12px;" onclick="searchGraduatorie(1)">🏆 Cerca graduatorie</button>
+    </div>
+    <div id="grad-results" style="display:none;">
+      <div class="status-bar" id="grad-status"></div>
+      <div id="grad-list"></div>
+      <div class="pagination" id="grad-pages"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ATHLETE DETAIL PAGE -->
+<div class="ath-page" id="ath-page">
+  <div class="ath-page-inner">
+    <button class="back-btn" onclick="closeAthPage()">← Indietro</button>
+    <div class="ath-hero" id="ath-hero"></div>
+
+    <!-- Vasca selector globale -->
+    <div class="vasca-global">
+      <span class="vasca-global-label">Lunghezza vasca</span>
+      <div class="vasca-toggle">
+        <button class="vtoggle active" id="v50" onclick="setVasca(50)">50m</button>
+        <button class="vtoggle" id="v25" onclick="setVasca(25)">25m</button>
+      </div>
+    </div>
+
+    <!-- PB Grid -->
+    <p class="pb-section-title" id="pb-section-label">Personal Best — Vasca 50m</p>
+    <div class="pb-grid" id="pb-grid"></div>
+
+    <!-- Chart -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <span class="chart-title" id="chart-title">Seleziona una specialità</span>
+      </div>
+      <p class="chart-hint" id="chart-hint">↓ tempi più bassi = prestazioni migliori</p>
+      <div style="position:relative;width:100%;height:220px;">
+        <div class="loading-chart" id="chart-placeholder"><span style="color:var(--text3)">Tocca una specialità per vedere il grafico</span></div>
+        <canvas id="progressChart" role="img" aria-label="Grafico progressione tempi" style="display:none;"></canvas>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="stats-row"></div>
+
+    <!-- Results -->
+    <div class="results-list" id="results-list" style="display:none;">
+      <table><thead><tr><th>Data</th><th>Tempo</th><th>Luogo</th></tr></thead>
+      <tbody id="results-body"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PROXY = 'https://swimscout.1450125.xyz/api';
+const FAV_KEY = 'swimscout_fav_v2';
+let chartInst = null;
+let currentAthlete = null;
+let currentVasca = 50;
+let currentCodice = null;
+
+// ── FAVOURITES ────────────────────────────────────────────
+function getFavs(){ try{return JSON.parse(localStorage.getItem(FAV_KEY)||'{}');}catch{return{};} }
+function saveFavs(f){ localStorage.setItem(FAV_KEY,JSON.stringify(f)); }
+function isFav(id){ return !!getFavs()[id]; }
+function toggleFav(id,nome,nascita,societa,pbs){
+  const f=getFavs();
+  if(f[id]){ delete f[id]; toast('Rimosso dai preferiti'); }
+  else{ f[id]={id,nome,nascita,societa,pbs,savedAt:Date.now()}; toast('⭐ Aggiunto ai preferiti'); }
+  saveFavs(f); updateFavBadge();
+  renderFavBtn();
+}
+function updateFavBadge(){
+  const n=Object.keys(getFavs()).length;
+  const b=document.getElementById('fav-badge');
+  b.innerHTML=n>0?`<span class="nav-badge">${n}</span>`:'';
+}
+function renderFavBtn(){
+  const btn=document.getElementById('ath-hero-fav');
+  if(!btn||!currentAthlete) return;
+  const fav=isFav(currentAthlete.id);
+  btn.textContent='★'; btn.className='ath-hero-fav'+(fav?' active':'');
+}
+function renderFavView(){
+  const favs=getFavs(), list=document.getElementById('fav-list'), keys=Object.keys(favs);
+  if(!keys.length){
+    list.innerHTML=`<div class="fav-empty"><div class="fav-empty-icon">⭐</div><p>Nessun atleta nei preferiti.<br>Cerca un atleta e tocca ☆ per aggiungerlo.</p></div>`;
+    return;
+  }
+  list.innerHTML=keys.map(id=>{
+    const a=favs[id];
+    const ini=a.nome.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const pbsHtml=(a.pbs||[]).slice(0,6).map(p=>`
+      <div class="fav-pb-pill">
+        <span class="fav-pb-spec">${p.spec}</span>
+        <span class="fav-pb-time">${p.tempo}</span>
+        <span class="fav-pb-vasca">50m</span>
+      </div>`).join('');
+    return `<div class="fav-card">
+      <div class="fav-card-header" onclick="openAthPage('${a.id}','${a.nome.replace(/'/g,"\\'")}','${a.nascita}')">
+        <div class="fav-avatar">${ini}</div>
+        <div style="flex:1;min-width:0;">
+          <p class="fav-name">${a.nome}</p>
+          <p class="fav-meta">${a.societa||''}${a.nascita?' · n. '+a.nascita:''}</p>
+        </div>
+        <button class="fav-remove" onclick="event.stopPropagation();removeFav('${a.id}')" title="Rimuovi">✕</button>
+      </div>
+      ${pbsHtml?`<div class="fav-pbs">${pbsHtml}</div>`:''}
+    </div>`;
+  }).join('');
+}
+function removeFav(id){
+  const f=getFavs(); delete f[id]; saveFavs(f); updateFavBadge(); renderFavView(); toast('Rimosso dai preferiti');
+}
+
+// ── UTILS ─────────────────────────────────────────────────
+function showView(v,btn){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(v==='preferiti') renderFavView();
+}
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+function setLoading(id,loading,def){
+  const b=document.getElementById(id); if(!b) return;
+  b.innerHTML=loading?'<div class="spinner"></div> Carico...':def; b.disabled=loading;
+}
+async function callProxy(view,params,page=1){
+  const r=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({view,params,page})});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+function parseHTML(html){ return new DOMParser().parseFromString(html,'text/html'); }
+function stagToAnno(s){ if(!s||s==='0') return ''; return String(parseInt(s)+1); }
+function timeToSec(t){
+  if(!t) return null; t=t.toString().trim();
+  if(t.includes(':')){ const[m,s]=t.split(':'); return parseFloat(m)*60+parseFloat(s); }
+  return parseFloat(t);
+}
+function secToTime(s){
+  if(s>=60){ const m=Math.floor(s/60); const sec=(s%60).toFixed(2).padStart(5,'0'); return m+':'+sec; }
+  return s.toFixed(2);
+}
+function parseItalianDate(str){
+  if(!str) return '';
+  const mo={'Gennaio':1,'Febbraio':2,'Marzo':3,'Aprile':4,'Maggio':5,'Giugno':6,'Luglio':7,'Agosto':8,'Settembre':9,'Ottobre':10,'Novembre':11,'Dicembre':12};
+  const p=str.trim().split(' ');
+  if(p.length===3){ return p[2]+'-'+String(mo[p[1]]||1).padStart(2,'0')+'-'+p[0].padStart(2,'0'); }
+  return str;
+}
+
+// ── SEARCH ATLETI ─────────────────────────────────────────
+function resetAtleti(){
+  ['a-cognome','a-nome','a-dalyob','a-alyob'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('a-sesso').value='M';
+  document.getElementById('a-vasca').value='2';
+  document.getElementById('a-stagione').value='2025';
+  document.getElementById('a-codice-gara').value='';
+  document.getElementById('a-comitato').value='';
+  document.getElementById('atleti-results').style.display='none';
+}
+async function searchAtleti(page){
+  const stag=document.getElementById('a-stagione').value;
+  const params={
+    sesso:document.getElementById('a-sesso').value,
+    id_lunghezza_vasca:document.getElementById('a-vasca').value,
+    kindtime:'1',stagione:stag==='0'?'':stag,anno:stagToAnno(stag),
+    settore:'NUO',dalyob:document.getElementById('a-dalyob').value,
+    alyob:document.getElementById('a-alyob').value,
+    cognome:document.getElementById('a-cognome').value,
+    nome:document.getElementById('a-nome').value,
+    codice_gara:document.getElementById('a-codice-gara').value,
+    all:'0',id_comitato:document.getElementById('a-comitato').value,
+    limit:'20',id_atleta:''
+  };
+  setLoading('a-btn',true,'🔍 Cerca');
+  const resEl=document.getElementById('atleti-results');
+  const listEl=document.getElementById('atleti-list');
+  const statusEl=document.getElementById('atleti-status');
+  const pagesEl=document.getElementById('atleti-pages');
+  resEl.style.display='block'; listEl.innerHTML=''; pagesEl.innerHTML='';
+  statusEl.innerHTML='<span style="color:var(--text2)">Ricerca in corso...</span>';
+  try{
+    const data=await callProxy('grricerca',params,page);
+    if(data.status!=='OK') throw new Error('Risposta non valida');
+    const doc=parseHTML(data.content||'');
+    const athletes=[];
+    doc.querySelectorAll('.row').forEach(row=>{
+      const el=row.querySelector('.atleta .collegamento');
+      if(!el) return;
+      const n=row.querySelector('.nascita span');
+      athletes.push({nome:el.textContent.trim(),id:el.dataset.id||'',nascita:n?n.textContent.trim():''});
+    });
+    statusEl.innerHTML='<span>'+athletes.length+' atleti trovati</span><span style="font-size:11px;color:var(--text3)">Tap nome · ★ preferiti</span>';
+    listEl.innerHTML=athletes.length?athletes.map(a=>{
+      const fav=isFav(a.id);
+      return `<div class="ath-card">
+        <div class="ath-card-body" onclick="openAthPage('${a.id}','${a.nome.replace(/'/g,"\\'")}','${a.nascita}')">
+          <div class="ath-name">${a.nome}</div>
+          <div class="ath-sub">n. ${a.nascita}</div>
+        </div>
+        <button class="ath-fav-btn${fav?' active':''}" id="fav-btn-${a.id}" onclick="quickFav('${a.id}','${a.nome.replace(/'/g,"\\'")}','${a.nascita}')">★</button>
+        <span class="ath-arrow" onclick="openAthPage('${a.id}','${a.nome.replace(/'/g,"\\'")}','${a.nascita}')">›</span>
+      </div>`;
+    }).join(''):'<div class="empty"><div class="empty-icon">🏊</div>Nessun atleta trovato</div>';
+    if(athletes.length>=20){
+      pagesEl.innerHTML=`<button class="page-btn" ${page<=1?'disabled':''} onclick="searchAtleti(${page-1})">← Prec</button><span>Pag. ${page}</span><button class="page-btn" onclick="searchAtleti(${page+1})">Succ →</button>`;
+    }
+  }catch(e){
+    statusEl.innerHTML=''; listEl.innerHTML='<div class="error-box">Errore: '+e.message+'</div>';
+  }
+  setLoading('a-btn',false,'🔍 Cerca');
+}
+function quickFav(id,nome,nascita){
+  toggleFav(id,nome,nascita,'',[]); 
+  const btn=document.getElementById('fav-btn-'+id);
+  if(btn){ btn.className='ath-fav-btn'+(isFav(id)?' active':''); }
+}
+
+// ── ATHLETE DETAIL ────────────────────────────────────────
+async function openAthPage(id,nome,nascita){
+  currentAthlete={id,nome,nascita,societa:'',pbs:[],vasche:null};
+  currentVasca=50; currentCodice=null;
+  if(chartInst){chartInst.destroy();chartInst=null;}
+  document.getElementById('progressChart').style.display='none';
+  document.getElementById('chart-placeholder').innerHTML='<div class="spinner"></div><span style="color:var(--text2)">Carico dati atleta...</span>';
+  document.getElementById('chart-placeholder').style.display='flex';
+  document.getElementById('chart-title').textContent='Seleziona una specialità';
+  document.getElementById('stats-row').innerHTML='';
+  document.getElementById('results-list').style.display='none';
+  document.getElementById('pb-grid').innerHTML='';
+  document.getElementById('v50').classList.add('active');
+  document.getElementById('v25').classList.remove('active');
+  document.getElementById('pb-section-label').textContent='Personal Best — Vasca 50m';
+  const ini=nome.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  const fav=isFav(id);
+  document.getElementById('ath-hero').innerHTML=`
+    <div class="ath-avatar">${ini}</div>
+    <div style="flex:1;min-width:0;">
+      <p class="ath-hero-name">${nome}</p>
+      <p id="ath-hero-meta" class="ath-hero-meta">n. ${nascita}</p>
+    </div>
+    <button class="ath-hero-fav${fav?' active':''}" id="ath-hero-fav" onclick="toggleFavFromPage()">★</button>`;
+  document.getElementById('ath-page').classList.add('open');
+  document.body.style.overflow='hidden';
+  const stag=document.getElementById('a-stagione').value;
+  const params={
+    sesso:document.getElementById('a-sesso').value||'M',
+    id_lunghezza_vasca:'2',kindtime:'1',
+    stagione:stag==='0'?'':stag,anno:stagToAnno(stag),
+    settore:'NUO',cognome:nome.split(' ')[0],all:'0',limit:'20',id_atleta:id
+  };
+  try{
+    const data=await callProxy('gratleta',params);
+    const doc=parseHTML(data.content||'');
+    const scheda=doc.querySelector('.scheda_atleta');
+    if(scheda){
+      const soc=scheda.querySelector('.societa')?.textContent?.trim()||'';
+      currentAthlete.societa=soc;
+      if(soc) document.getElementById('ath-hero-meta').textContent=soc+' · n. '+nascita;
+      const pbs=[];
+      scheda.querySelectorAll('.personalbest .row').forEach(row=>{
+        const specEl=row.querySelector('.specialita .collegamento');
+        if(!specEl) return;
+        pbs.push({spec:specEl.textContent.trim(),codice:specEl.dataset.id||'',tempo:row.querySelector('.tempo span')?.textContent?.trim()||''});
+      });
+      currentAthlete.pbs=pbs;
+      renderPBGrid();
+      const favs=getFavs();
+      if(favs[id]){favs[id].societa=soc;favs[id].pbs=pbs;saveFavs(favs);}
+    }
+  }catch(e){}
+  document.getElementById('chart-placeholder').innerHTML='<span style="color:var(--text3);font-size:13px;">Tocca una specialità per vedere il grafico</span>';
+}
+
+function toggleFavFromPage(){
+  if(!currentAthlete) return;
+  toggleFav(currentAthlete.id,currentAthlete.nome,currentAthlete.nascita,currentAthlete.societa,currentAthlete.pbs);
+}
+function closeAthPage(){
+  document.getElementById('ath-page').classList.remove('open');
+  document.body.style.overflow='';
+  if(chartInst){chartInst.destroy();chartInst=null;}
+}
+
+function renderPBGrid(){
+  const grid=document.getElementById('pb-grid');
+  grid.innerHTML=currentAthlete.pbs.map(p=>{
+    // Se abbiamo già lo storico per questa specialità mostra PB della vasca corrente
+    let tempo=p.tempo||'—';
+    let tempoAlt='';
+    if(currentAthlete.vasche&&p.codice===currentCodice){
+      const d=currentAthlete.vasche[currentVasca];
+      if(d&&d.length>0){
+        const best=Math.min(...d.map(r=>timeToSec(r.t)).filter(v=>v!==null));
+        tempo=secToTime(best);
+      }
+    }
+    return `<div class="pb-card${p.codice===currentCodice?' active':''}" onclick="loadSpecialty('${p.codice}','${p.spec.replace(/'/g,"\\'")}')">
+      <p class="pb-spec">${p.spec}</p>
+      <p class="pb-time">${tempo}</p>
+    </div>`;
+  }).join('');
+}
+
+async function loadSpecialty(codice,specName){
+  if(currentCodice===codice) return;
+  currentCodice=codice; renderPBGrid();
+  document.getElementById('chart-title').textContent=specName;
+  document.getElementById('progressChart').style.display='none';
+  document.getElementById('chart-placeholder').style.display='flex';
+  document.getElementById('chart-placeholder').innerHTML='<div class="spinner"></div><span style="color:var(--text2)">Carico storico...</span>';
+  document.getElementById('stats-row').innerHTML='';
+  document.getElementById('results-list').style.display='none';
+  if(chartInst){chartInst.destroy();chartInst=null;}
+  const params={sesso:document.getElementById('a-sesso').value||'M',id_lunghezza_vasca:'0',kindtime:'1',stagione:'',anno:'',settore:'NUO',codice_gara:codice,all:'0',limit:'100',id_atleta:currentAthlete.id};
+  try{
+    const data=await callProxy('grspecialitaatleta',params);
+    const doc=parseHTML(data.content||'');
+    const vasche={};
+    doc.querySelectorAll('.vasca').forEach(v=>{
+      const h4=v.querySelector('h4')?.textContent?.trim()||'';
+      const key=h4.includes('25')?25:50;
+      const rows=[];
+      v.querySelectorAll('.row').forEach(row=>{
+        const t=row.querySelector('.tempo span')?.textContent?.trim();
+        const d=row.querySelector('.data span')?.textContent?.trim();
+        const luogoEl=row.querySelector('.luogo .collegamento');
+        const l=luogoEl?.textContent?.trim()||row.querySelector('.luogo span')?.textContent?.trim()||'';
+        const idEvento=luogoEl?.dataset?.id||'';
+        if(t&&d) rows.push({t,d:parseItalianDate(d),l,idEvento});
+      });
+      // Filtra: miglior tempo per id_evento
+      const byEvento={};
+      rows.forEach(r=>{
+        const k=r.idEvento||(r.d+'|'+r.l.toUpperCase());
+        if(!byEvento[k]||timeToSec(r.t)<timeToSec(byEvento[k].t)) byEvento[k]=r;
+      });
+      vasche[key]=Object.values(byEvento).sort((a,b)=>b.d.localeCompare(a.d));
+    });
+    currentAthlete.vasche=vasche;
+    renderPBGrid();
+    renderChart(currentVasca,specName);
+  }catch(e){
+    document.getElementById('chart-placeholder').innerHTML='<span style="color:var(--text2);font-size:13px;">Errore: '+e.message+'</span>';
+  }
+}
+
+function setVasca(v){
+  currentVasca=v;
+  document.getElementById('v50').classList.toggle('active',v===50);
+  document.getElementById('v25').classList.toggle('active',v===25);
+  document.getElementById('pb-section-label').textContent='Personal Best — Vasca '+v+'m';
+  renderPBGrid();
+  if(currentCodice&&currentAthlete.vasche){
+    const spec=currentAthlete.pbs.find(p=>p.codice===currentCodice);
+    renderChart(v,spec?spec.spec:'');
+  }
+}
+
+function renderChart(vasca,specName){
+  const raw=(currentAthlete.vasche||{})[vasca]||[];
+  if(!raw.length){
+    document.getElementById('progressChart').style.display='none';
+    document.getElementById('chart-placeholder').style.display='flex';
+    document.getElementById('chart-placeholder').innerHTML='<span style="color:var(--text3);font-size:13px;">Nessun dato per vasca '+vasca+'m</span>';
+    document.getElementById('stats-row').innerHTML='';
+    document.getElementById('results-list').style.display='none';
+    return;
+  }
+  const sorted=[...raw].sort((a,b)=>a.d.localeCompare(b.d));
+  const secVals=sorted.map(r=>timeToSec(r.t)).filter(v=>v!==null);
+  const labels=sorted.map(r=>{const[y,m,d]=r.d.split('-');return d+'/'+m+'/'+y.slice(2);});
+  let minPB=secVals[0];
+  const pbLine=secVals.map(v=>{if(v<=minPB){minPB=v;return v;}return minPB;});
+  const minVal=Math.min(...secVals),maxVal=Math.max(...secVals);
+  const pad=(maxVal-minVal)*0.18+0.5;
+  const minIdx=secVals.indexOf(minVal);
+  document.getElementById('chart-placeholder').style.display='none';
+  const canvas=document.getElementById('progressChart');
+  canvas.style.display='block';
+  if(chartInst){chartInst.destroy();chartInst=null;}
+  chartInst=new Chart(canvas.getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Prestazione',data:secVals,borderColor:'#3b8de0',backgroundColor:'rgba(59,141,224,0.07)',borderWidth:2,
+        pointBackgroundColor:secVals.map((v,i)=>i===minIdx?'#22c55e':'#3b8de0'),
+        pointBorderColor:secVals.map((v,i)=>i===minIdx?'#22c55e':'#3b8de0'),
+        pointRadius:secVals.map((v,i)=>i===minIdx?8:3.5),tension:0.3,fill:true},
+      {label:'PB progressivo',data:pbLine,borderColor:'#22c55e',borderWidth:1.5,borderDash:[5,4],pointRadius:0,tension:0,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          label:ctx=>secToTime(ctx.parsed.y),
+          afterLabel:ctx=>ctx.dataIndex===minIdx?'🏆 Personal Best':''
+        }}
+      },
+      scales:{
+        y:{reverse:true,min:minVal-pad,max:maxVal+pad,
+          ticks:{callback:v=>secToTime(v),font:{size:11},color:'#8899bb'},
+          grid:{color:'rgba(136,153,187,0.1)'}},
+        x:{ticks:{font:{size:10},color:'#8899bb',maxTicksLimit:10,maxRotation:45},grid:{display:false}}
+      }
+    }
+  });
+  // Annotation PB sul punto
+  const improvement=maxVal-minVal;
+  const firstDate=sorted[0].d.split('-');
+  document.getElementById('stats-row').innerHTML=`
+    <div class="stat-card"><p class="stat-label">Personal Best</p><p class="stat-val" style="color:var(--green)">${secToTime(minVal)}</p></div>
+    <div class="stat-card"><p class="stat-label">Miglioramento</p><p class="stat-val" style="color:var(--green)">-${improvement.toFixed(2)}s</p></div>
+    <div class="stat-card"><p class="stat-label">Prima gara</p><p class="stat-val" style="font-size:13px;">${firstDate[2]}/${firstDate[1]}/${firstDate[0].slice(2)}</p></div>`;
+  // Lista con separatori per anno
+  const tbody=document.getElementById('results-body');
+  let lastYear='';
+  tbody.innerHTML=[...sorted].reverse().map(r=>{
+    const sec=timeToSec(r.t); const isPB=sec===minVal;
+    const[y,m,d]=r.d.split('-');
+    let divider='';
+    if(y!==lastYear){ lastYear=y; divider=`<tr class="year-divider"><td colspan="3">${y}</td></tr>`; }
+    return divider+`<tr>
+      <td style="color:var(--text2)">${d}/${m}/${y}</td>
+      <td><span style="font-family:monospace;font-weight:600">${r.t}</span>${isPB?'<span class="pb-badge">PB</span>':''}</td>
+      <td style="color:var(--text2)">${r.l}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('results-list').style.display='block';
+}
+
+// ── GRADUATORIE ───────────────────────────────────────────
+async function searchGraduatorie(page){
+  const stag=document.getElementById('g-stagione').value;
+  const params={
+    sesso:document.getElementById('g-sesso').value,
+    id_lunghezza_vasca:document.getElementById('g-vasca').value,
+    kindtime:'1',stagione:stag==='0'?'':stag,anno:stagToAnno(stag),
+    settore:'NUO',dalyob:document.getElementById('g-dalyob').value,
+    alyob:document.getElementById('g-alyob').value,
+    codice_gara:document.getElementById('g-codice-gara').value,
+    all:'0',id_comitato:document.getElementById('g-comitato').value,
+    limit:'20',id_atleta:''
+  };
+  setLoading('g-btn',true,'🏆 Cerca graduatorie');
+  const resEl=document.getElementById('grad-results');
+  const listEl=document.getElementById('grad-list');
+  const statusEl=document.getElementById('grad-status');
+  const pagesEl=document.getElementById('grad-pages');
+  resEl.style.display='block'; listEl.innerHTML=''; pagesEl.innerHTML='';
+  statusEl.innerHTML='<span style="color:var(--text2)">Carico...</span>';
+  try{
+    const data=await callProxy('grricerca',params,page);
+    if(data.status!=='OK') throw new Error('Risposta non valida');
+    const doc=parseHTML(data.content||'');
+    const rows=[];
+    doc.querySelectorAll('.row').forEach(row=>{
+      const atleta=row.querySelector('.atleta span,.nome span,.atleta .collegamento')?.textContent?.trim();
+      const tempo=row.querySelector('.tempo span')?.textContent?.trim();
+      const anno2=row.querySelector('.nascita span,.anno span')?.textContent?.trim();
+      const soc=row.querySelector('.societa span')?.textContent?.trim();
+      const l=row.querySelector('.luogo span,.luogo .collegamento')?.textContent?.trim();
+      if(atleta||tempo) rows.push({atleta,tempo,anno:anno2,soc,luogo:l});
+    });
+    statusEl.innerHTML='<span>'+rows.length+' risultati</span>';
+    if(rows.length){
+      listEl.innerHTML='<div class="grad-wrap"><table><thead><tr><th>Atleta</th><th>Anno</th><th>Tempo</th><th>Luogo</th></tr></thead><tbody>'+
+        rows.map(r=>`<tr>
+          <td style="font-weight:600">${r.atleta||''}</td>
+          <td style="color:var(--text2)">${r.anno||''}</td>
+          <td><span class="tempo-mono">${r.tempo||''}</span></td>
+          <td style="font-size:11px;color:var(--text2)">${r.luogo||''}</td>
+        </tr>`).join('')+'</tbody></table></div>';
+      if(rows.length>=20) pagesEl.innerHTML=`<button class="page-btn" ${page<=1?'disabled':''} onclick="searchGraduatorie(${page-1})">← Prec</button><span>Pag. ${page}</span><button class="page-btn" onclick="searchGraduatorie(${page+1})">Succ →</button>`;
+    }else{listEl.innerHTML='<div class="empty"><div class="empty-icon">🏆</div>Nessun risultato</div>';}
+  }catch(e){statusEl.innerHTML='';listEl.innerHTML='<div class="error-box">Errore: '+e.message+'</div>';}
+  setLoading('g-btn',false,'🏆 Cerca graduatorie');
+}
+
+// ── INIT ──────────────────────────────────────────────────
+['a-cognome','a-nome'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('keydown',e=>{if(e.key==='Enter')searchAtleti(1);});
+});
+updateFavBadge();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
