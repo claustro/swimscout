@@ -154,7 +154,7 @@ details .field{margin-top:8px;}
 <body>
 
 <nav class="nav">
-  <div class="nav-logo">Swim<span>Scout</span><small>v0.37</small></div>
+  <div class="nav-logo">Swim<span>Scout</span><small>v0.39</small></div>
 </nav>
 
 <div class="main">
@@ -394,7 +394,10 @@ function renderFavView(){
   const items = keys.map(id => {
     const a=favs[id];
     const ini=a.nome.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-    const pbsHtml=(a.pbs||[]).slice(0,6).map(p=>`<div class="fav-pb-pill"><span style="color:var(--text2);font-size:12px">${p.spec}</span><span style="font-family:monospace;font-weight:600">${p.tempo}</span></div>`).join('');
+    const pbsList=(a.pbs||[]).filter(p=>p.tempo);
+    const pbsHtml=pbsList.length
+      ? pbsList.slice(0,6).map(p=>`<div class="fav-pb-pill"><span style="color:var(--text2);font-size:12px">${p.spec}</span><span style="font-family:monospace;font-weight:600">${p.tempo}</span></div>`).join('')
+      : `<div class="fav-pb-pill" style="color:var(--text3);font-size:11px">Apri la scheda per caricare i PB</div>`;
     const nomeEsc = a.nome.replace(/'/g,"\'");
     return `<div class="fav-card" data-fav-id="${a.id}">
       <div style="display:flex;align-items:center;">
@@ -412,7 +415,7 @@ function renderFavView(){
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
       </div>
-      ${pbsHtml ? `<div class="fav-pbs" style="padding:0 14px 12px;">${pbsHtml}</div>` : ''}
+      <div class="fav-pbs" style="padding:0 14px 12px;">${pbsHtml}</div>
     </div>`;
   });
   list.innerHTML = items.join('');
@@ -731,6 +734,7 @@ function closeAthPage(){
   document.getElementById('ath-page').classList.remove('open');
   document.body.style.overflow='';
   document.querySelector('.bottom-nav').style.display='flex';
+  renderFavView();
   if(charts[50]){charts[50].destroy();charts[50]=null;}
   if(charts[25]){charts[25].destroy();charts[25]=null;}
 }
