@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SwimScout">
+<meta name="theme-color" content="#0a1628">
+<link rel="manifest" href="manifest.json">
+<title>SwimScout</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+:root{
+  --bg:#0a1628;--surface:#111d35;--surface2:#1a2a45;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
+  --text:#e8edf5;--text2:#8899bb;--text3:#556688;
+  --accent:#3b8de0;--amber:#f59e0b;--green:#22c55e;--red:#ef4444;
+  --radius:12px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;overscroll-behavior:none;}
+.nav{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:0.5px solid var(--border);padding:0 16px;display:flex;align-items:center;justify-content:center;height:48px;}
+.nav-logo{font-size:16px;font-weight:700;letter-spacing:-0.3px;}
+.nav-logo span{color:var(--accent);}
+.nav-logo small{font-size:9px;font-weight:400;color:var(--text3);margin-left:4px;}
+
+/* BOTTOM TAB BAR */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:150;background:var(--surface);border-top:0.5px solid var(--border);display:flex;padding:6px 0 max(6px,env(safe-area-inset-bottom));backdrop-filter:blur(10px);}
+.bottom-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;background:none;border:none;cursor:pointer;color:var(--text3);transition:color .15s;font-family:inherit;}
+.bottom-tab span:not([id]){font-size:11px;font-weight:500;}
+.bottom-tab.active{color:var(--accent);}
+.nav-badge{position:absolute;top:-6px;right:-10px;background:var(--amber);color:#000;font-size:10px;font-weight:700;padding:1px 5px;border-radius:99px;min-width:16px;text-align:center;}
+.view{display:none;}.view.active{display:block;}
+.main{max-width:680px;margin:0 auto;padding:16px 16px 80px;}
+.card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:12px;}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;}
+.field label{font-size:12px;color:var(--text2);}
+.field input,.field select{background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:14px;width:100%;-webkit-appearance:none;outline:none;}
+.field input::placeholder{color:var(--text3);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+details summary{font-size:13px;color:var(--text2);cursor:pointer;padding:8px 0;list-style:none;display:flex;align-items:center;gap:6px;}
+details summary::before{content:'▸';font-size:10px;transition:transform .2s;}
+details[open] summary::before{transform:rotate(90deg);}
+details .field{margin-top:8px;}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;border:none;width:100%;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:active{background:#1a6bc4;transform:scale(.98);}
+.btn-ghost{background:var(--surface2);color:var(--text2);border:0.5px solid var(--border2);}
+.btn-row{display:flex;gap:8px;}
+.search-main{display:flex;gap:8px;margin-bottom:10px;}
+.search-input{flex:1;background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;color:var(--text);font-size:15px;outline:none;-webkit-appearance:none;}
+.search-input::placeholder{color:var(--text3);}
+.search-btn{width:52px;flex-shrink:0;padding:0;border-radius:var(--radius-sm);}
+.btn-row .btn-ghost{width:auto;padding:12px 16px;}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.status-bar{font-size:12px;color:var(--text2);display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:0 2px;}
+.ath-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:8px;display:flex;align-items:center;overflow:hidden;}
+.ath-card-body{flex:1;padding:14px 16px;cursor:pointer;}
+.ath-card-body:hover{background:rgba(255,255,255,0.02);}
+.ath-name{font-size:15px;font-weight:600;}
+.ath-sub{font-size:12px;color:var(--text2);margin-top:3px;}
+.ath-fav-btn{padding:12px 14px;background:none;border:none;cursor:pointer;font-size:26px;line-height:1;flex-shrink:0;color:rgba(255,255,255,0.2);transition:color .15s;}
+.ath-fav-btn.active{color:var(--amber);}
+.ath-arrow{font-size:16px;color:var(--text3);padding-right:14px;cursor:pointer;}
+
+/* ATHLETE PAGE */
+.ath-page{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:200;overflow-y:auto;}
+.ath-page.open{display:block;}
+.ath-page-inner{max-width:680px;margin:0 auto;padding:16px;}
+.back-btn{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);background:none;border:none;cursor:pointer;padding:4px 0 12px;font-family:inherit;}
+.ath-hero{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:14px;}
+.ath-avatar{width:46px;height:46px;border-radius:50%;background:rgba(59,141,224,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--accent);flex-shrink:0;}
+.ath-hero-fav{margin-left:auto;background:none;border:none;cursor:pointer;font-size:30px;line-height:1;color:rgba(255,255,255,0.2);transition:color .15s;flex-shrink:0;}
+.ath-hero-fav.active{color:var(--amber);}
+.ath-fav-btn.active .fav-icon,.ath-hero-fav.active .fav-icon{fill:var(--amber);stroke:var(--amber);}
+.vasca-tab-btn svg{vertical-align:-2px;}
+.btn svg{vertical-align:-2px;}
+.back-btn svg{vertical-align:-2px;}
+
+/* VASCA TABS nella scheda atleta */
+.vasca-tabs{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:16px;border-radius:var(--radius);overflow:hidden;border:0.5px solid var(--border2);}
+.vasca-tab-btn{padding:14px;border:none;background:var(--surface);cursor:pointer;font-size:14px;font-weight:600;color:var(--text2);transition:all .15s;font-family:inherit;border-right:0.5px solid var(--border2);}
+.vasca-tab-btn:last-child{border-right:none;}
+.vasca-tab-btn.active-50{background:rgba(59,141,224,0.15);color:var(--accent);}
+.vasca-tab-btn.active-25{background:rgba(245,158,11,0.15);color:var(--amber);}
+
+/* VASCA CONTENT */
+.vasca-content{display:none;}
+.vasca-content.active{display:block;}
+.vasca-header{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px;padding:0 2px;}
+.vasca-header.c50{color:var(--accent);}
+.vasca-header.c25{color:var(--amber);}
+
+/* PB GRID */
+.pb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-bottom:14px;}
+.pb-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;transition:border-color .15s;}
+.pb-card.active50{border-color:var(--accent);background:rgba(59,141,224,0.06);}
+.pb-card.active25{border-color:var(--amber);background:rgba(245,158,11,0.06);}
+.pb-card:hover{border-color:var(--border2);}
+.pb-spec{font-size:11px;color:var(--text2);margin:0 0 4px;}
+.pb-time{font-size:15px;font-weight:600;font-family:monospace;margin:0;}
+
+/* CHART */
+.chart-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.chart-title{font-size:14px;font-weight:600;margin-bottom:12px;}
+.loading-chart{display:flex;align-items:center;justify-content:center;gap:10px;height:200px;color:var(--text2);font-size:13px;}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.stat-card{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;}
+.stat-label{font-size:11px;color:var(--text2);margin:0 0 4px;}
+.stat-val{font-size:16px;font-weight:600;margin:0;font-family:monospace;}
+.results-list{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;}
+.results-list table{width:100%;border-collapse:collapse;font-size:13px;}
+.results-list th{font-size:11px;color:var(--text3);font-weight:500;padding:8px 12px;border-bottom:0.5px solid var(--border);text-align:left;}
+.results-list td{padding:8px 12px;border-bottom:0.5px solid var(--border);}
+.results-list tr:last-child td{border-bottom:none;}
+.year-divider td{background:var(--surface2);font-size:11px;font-weight:600;color:var(--text3);padding:5px 12px;letter-spacing:.05em;}
+.pb-badge{font-size:10px;background:rgba(34,197,94,0.15);color:var(--green);padding:2px 6px;border-radius:99px;margin-left:6px;font-weight:600;}
+
+/* FAV */
+.fav-empty{text-align:center;padding:60px 20px;color:var(--text2);}
+.fav-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;}
+.fav-card-header{padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;}
+.fav-avatar{width:40px;height:40px;border-radius:50%;background:rgba(59,141,224,0.15);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--accent);flex-shrink:0;}
+.fav-remove{background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;flex-shrink:0;}
+.drag-handle{opacity:0.6;} .drag-handle:active{opacity:1;color:var(--accent)!important;}
+.fav-card.dragging{opacity:0.4;border:1.5px dashed var(--accent);}
+.fav-card.drag-over{border:1.5px solid var(--accent);background:rgba(59,141,224,0.08);}
+.fav-pbs{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 14px;}
+.fav-pb-pill{background:var(--surface2);border-radius:var(--radius-sm);padding:4px 10px;font-size:12px;display:flex;gap:6px;}
+
+/* GRAD */
+.grad-wrap{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.grad-wrap table{width:100%;border-collapse:collapse;font-size:13px;}
+.grad-wrap th{font-size:11px;color:var(--text3);font-weight:500;text-align:left;padding:10px 12px;border-bottom:0.5px solid var(--border);}
+.grad-wrap td{padding:9px 12px;border-bottom:0.5px solid var(--border);}
+.grad-wrap tr:last-child td{border-bottom:none;}
+.tempo-mono{font-weight:600;font-family:monospace;font-size:14px;}
+.empty{text-align:center;padding:40px 20px;color:var(--text2);font-size:14px;}
+.error-box{background:rgba(239,68,68,0.1);border:0.5px solid rgba(239,68,68,0.3);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;color:#fca5a5;}
+.pagination{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:16px;font-size:13px;color:var(--text2);}
+.page-btn{background:var(--surface2);border:0.5px solid var(--border2);color:var(--text);padding:8px 14px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;}
+.page-btn:disabled{opacity:.3;cursor:default;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface2);border:0.5px solid var(--border2);color:var(--text);padding:10px 18px;border-radius:99px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+@media(max-width:480px){.grid3{grid-template-columns:1fr 1fr;}.main,.ath-page-inner{padding:12px;}.stats-row{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">Swim<span>Scout</span><small>v0.41</small></div>
+</nav>
+
+<div class="main">
+  <!-- ATLETI -->
+  <div class="view active" id="view-atleti">
+    <div class="card">
+      <div class="card-title">Cerca atleta</div>
+      <div class="grid2">
+        <div class="field"><label>Cognome *</label><input type="text" id="a-cognome" placeholder="Cognome atleta" autocomplete="off" autocorrect="off" autocapitalize="off"></div>
+        <div class="field"><label>Nome</label><input type="text" id="a-nome" placeholder="Facoltativo" autocomplete="off" autocorrect="off" autocapitalize="off"></div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label>Sesso</label><select id="a-sesso"><option value="M">Maschile</option><option value="F">Femminile</option><option value="">Tutti</option></select></div>
+        <div class="field"><label>Vasca</label><select id="a-vasca"><option value="2">50m</option><option value="1">25m</option></select></div>
+        <div class="field"><label>Stagione</label><select id="a-stagione"><option value="2025">2025-26</option><option value="2024">2024-25</option><option value="2023">2023-24</option><option value="2022">2022-23</option><option value="0">Tutte</option></select></div>
+      </div>
+      <details>
+        <summary>Filtri avanzati</summary>
+        <div class="grid2" style="margin-top:8px;">
+          <div class="field"><label>Anno nasc. da</label><input type="number" id="a-dalyob" placeholder="es. 2008" min="1960" max="2020"></div>
+          <div class="field"><label>Anno nasc. a</label><input type="number" id="a-alyob" placeholder="es. 2012" min="1960" max="2020"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Specialità</label>
+            <select id="a-codice-gara">
+              <option value="">Tutte</option>
+              <option value="00">50 SL</option><option value="01">100 SL</option><option value="02">200 SL</option><option value="03">400 SL</option><option value="05">800 SL</option><option value="06">1500 SL</option>
+              <option value="20">50 Do</option><option value="21">100 Do</option><option value="22">200 Do</option>
+              <option value="30">50 Ra</option><option value="31">100 Ra</option><option value="32">200 Ra</option>
+              <option value="40">50 Fa</option><option value="41">100 Fa</option><option value="42">200 Fa</option>
+              <option value="51">200 MI</option><option value="53">400 MI</option>
+            </select>
+          </div>
+          <div class="field"><label>Comitato</label>
+            <select id="a-comitato"><option value="">Nazionale</option><option value="8">Toscana</option><option value="1">Piemonte/VdA</option><option value="2">Lombardia</option><option value="7">Emilia Romagna</option><option value="11">Lazio</option><option value="4">Veneto</option><option value="14">Campania</option><option value="18">Sicilia</option></select>
+          </div>
+        </div>
+      </details>
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn btn-primary" id="a-btn" onclick="searchAtleti(1)"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Cerca</button>
+        <button class="btn btn-ghost" onclick="resetAtleti()">Reset</button>
+      </div>
+    </div>
+    <div id="atleti-results" style="display:none;">
+      <div class="status-bar" id="atleti-status"></div>
+      <div id="atleti-list"></div>
+      <div class="pagination" id="atleti-pages"></div>
+    </div>
+  </div>
+
+  <!-- PREFERITI -->
+  <div class="view" id="view-preferiti"><div id="fav-list"></div></div>
+
+  <!-- GRADUATORIE -->
+  <div class="view" id="view-graduatorie">
+    <div class="card">
+      <div class="card-title">Graduatorie / Primati</div>
+      <div class="grid2">
+        <div class="field"><label>Sesso</label><select id="g-sesso"><option value="M">Maschile</option><option value="F">Femminile</option></select></div>
+        <div class="field"><label>Vasca</label><select id="g-vasca"><option value="2">50m</option><option value="1">25m</option></select></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Stagione</label><select id="g-stagione"><option value="2025">2025-26</option><option value="2024">2024-25</option><option value="2023">2023-24</option><option value="0">Tutte</option></select></div>
+        <div class="field"><label>Specialità</label>
+          <select id="g-codice-gara">
+            <option value="">Tutte</option>
+            <option value="00">50 SL</option><option value="01">100 SL</option><option value="02">200 SL</option><option value="03">400 SL</option>
+            <option value="20">50 Do</option><option value="21">100 Do</option><option value="22">200 Do</option>
+            <option value="30">50 Ra</option><option value="31">100 Ra</option><option value="32">200 Ra</option>
+            <option value="40">50 Fa</option><option value="41">100 Fa</option><option value="42">200 Fa</option>
+            <option value="51">200 MI</option><option value="53">400 MI</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Anno nasc. da</label><input type="number" id="g-dalyob" placeholder="es. 2008"></div>
+        <div class="field"><label>Anno nasc. a</label><input type="number" id="g-alyob" placeholder="es. 2012"></div>
+      </div>
+      <div class="field"><label>Comitato</label><select id="g-comitato"><option value="">Nazionale</option><option value="8">Toscana</option><option value="1">Piemonte/VdA</option><option value="2">Lombardia</option><option value="7">Emilia Romagna</option><option value="11">Lazio</option></select></div>
+      <button class="btn btn-primary" id="g-btn" style="margin-top:12px;" onclick="searchGraduatorie(1)"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Cerca graduatorie</button>
+    </div>
+    <div id="grad-results" style="display:none;">
+      <div class="status-bar" id="grad-status"></div>
+      <div id="grad-list"></div>
+      <div class="pagination" id="grad-pages"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM TAB BAR -->
+<nav class="bottom-nav">
+  <button class="bottom-tab active" id="tab-atleti" onclick="showView('atleti',this)">
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <span>Atleti</span>
+  </button>
+  <button class="bottom-tab" id="tab-preferiti" onclick="showView('preferiti',this)">
+    <span style="position:relative;display:inline-flex;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span id="fav-badge"></span>
+    </span>
+    <span>Preferiti</span>
+  </button>
+  <button class="bottom-tab" id="tab-grad" onclick="showView('graduatorie',this)">
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+    <span>Graduatorie</span>
+  </button>
+</nav>
+
+<!-- ATHLETE DETAIL PAGE -->
+<div class="ath-page" id="ath-page">
+  <div class="ath-page-inner">
+    <button class="back-btn" onclick="closeAthPage()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> Indietro</button>
+    <div class="ath-hero" id="ath-hero"></div>
+
+    <!-- Due tab vasca separati e indipendenti -->
+    <div class="vasca-tabs">
+      <button class="vasca-tab-btn" id="vtab50" onclick="showVasca(50)"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg> Vasca 50m</button>
+      <button class="vasca-tab-btn" id="vtab25" onclick="showVasca(25)"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg> Vasca 25m</button>
+    </div>
+
+    <!-- Contenuto vasca 50m -->
+    <div class="vasca-content" id="vc50">
+      <p class="vasca-header c50">Personal Best — Vasca 50m</p>
+      <div class="pb-grid" id="pb-grid-50"></div>
+      <div class="chart-card">
+        <p class="chart-title" id="chart-title-50">Seleziona una specialità</p>
+        <div style="position:relative;width:100%;height:220px;">
+          <div class="loading-chart" id="chart-ph-50"><span style="color:var(--text3)">Tocca una specialità</span></div>
+          <canvas id="chart-50" role="img" aria-label="Grafico progressione 50m" style="display:none;"></canvas>
+        </div>
+      </div>
+      <div class="stats-row" id="stats-50"></div>
+      <div class="results-list" id="results-50" style="display:none;">
+        <table><thead><tr><th>Data</th><th>Tempo</th><th>Luogo</th></tr></thead><tbody id="tbody-50"></tbody></table>
+      </div>
+    </div>
+
+    <!-- Contenuto vasca 25m -->
+    <div class="vasca-content" id="vc25">
+      <p class="vasca-header c25">Personal Best — Vasca 25m</p>
+      <div class="pb-grid" id="pb-grid-25"></div>
+      <div class="chart-card">
+        <p class="chart-title" id="chart-title-25">Seleziona una specialità</p>
+        <div style="position:relative;width:100%;height:220px;">
+          <div class="loading-chart" id="chart-ph-25"><span style="color:var(--text3)">Tocca una specialità</span></div>
+          <canvas id="chart-25" role="img" aria-label="Grafico progressione 25m" style="display:none;"></canvas>
+        </div>
+      </div>
+      <div class="stats-row" id="stats-25"></div>
+      <div class="results-list" id="results-25" style="display:none;">
+        <table><thead><tr><th>Data</th><th>Tempo</th><th>Luogo</th></tr></thead><tbody id="tbody-25"></tbody></table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PROXY='https://swimscout.1450125.xyz/api';
+const FAV_KEY='swimscout_fav_v2';
+let charts={50:null,25:null};
+let currentAthlete=null;
+let activeVasca=0;
+let activeCodice={50:null,25:null};
+
+// ── UTILS ─────────────────────────────────────────────────
+function getFavs(){try{return JSON.parse(localStorage.getItem(FAV_KEY)||'{}')}catch{return{}}}
+function saveFavs(f){localStorage.setItem(FAV_KEY,JSON.stringify(f))}
+function isFav(id){return!!getFavs()[id]}
+function updateFavBadge(){
+  const n=Object.keys(getFavs()).length;
+  document.getElementById('fav-badge').innerHTML=n>0?`<span class="nav-badge">${n}</span>`:'';
+}
+function toast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+function showView(v,btn){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.bottom-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  if(btn)btn.classList.add('active');
+  window.scrollTo(0,0);
+  if(v==='preferiti')renderFavView();
+}
+function setLoading(id,loading,def){
+  const b=document.getElementById(id);if(!b)return;
+  b.innerHTML=loading?'<div class="spinner"></div> Carico...':def;b.disabled=loading;
+}
+async function callProxy(view,params,page=1){
+  const r=await fetch(PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({view,params,page})});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return r.json();
+}
+function parseHTML(html){return new DOMParser().parseFromString(html,'text/html')}
+
+function stagToAnno(s){if(!s||s==='0')return'';return String(parseInt(s)+1)}
+function timeToSec(t){
+  if(!t)return null;t=t.toString().trim();
+  if(t.includes(':')){{const[m,s]=t.split(':');return parseFloat(m)*60+parseFloat(s)}}
+  return parseFloat(t);
+}
+function secToTime(s){
+  if(s>=60){const m=Math.floor(s/60);const sec=(s%60).toFixed(2).padStart(5,'0');return m+':'+sec}
+  return s.toFixed(2);
+}
+function parseItalianDate(str){
+  if(!str)return'';
+  const mo={Gennaio:1,Febbraio:2,Marzo:3,Aprile:4,Maggio:5,Giugno:6,Luglio:7,Agosto:8,Settembre:9,Ottobre:10,Novembre:11,Dicembre:12};
+  const p=str.trim().split(' ');
+  if(p.length===3)return p[2]+'-'+String(mo[p[1]]||1).padStart(2,'0')+'-'+p[0].padStart(2,'0');
+  return str;
+}
+
+// ── FAVOURITES ────────────────────────────────────────────
+function toggleFav(){
+  if(!currentAthlete)return;
+  const{id,nome,nascita,societa,pbs}=currentAthlete;
+  const f=getFavs();
+  if(f[id]){delete f[id];toast('Rimosso dai preferiti');}
+  else{f[id]={id,nome,nascita,societa,pbs,savedAt:Date.now()};toast('⭐ Aggiunto ai preferiti');}
+  saveFavs(f);updateFavBadge();
+  const btn=document.getElementById('ath-hero-fav');
+  if(btn){btn.className='ath-hero-fav'+(isFav(id)?' active':'');}
+}
+function removeFav(id){
+  const f=getFavs();delete f[id];saveFavs(f);renderFavView();updateFavBadge();toast('Rimosso dai preferiti');
+}
+function renderFavView(){
+  const favs=getFavs(),list=document.getElementById('fav-list'),keys=Object.keys(favs);
+  if(!keys.length){
+    list.innerHTML='<div class="fav-empty"><div style="font-size:40px;margin-bottom:12px">⭐</div><p style="color:var(--text2)">Nessun atleta nei preferiti.<br>Cerca un atleta e tocca ★ per aggiungerlo.</p></div>';
+    return;
+  }
+  const items = keys.map(id => {
+    const a=favs[id];
+    const ini=a.nome.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const pbsList=(a.pbs||[]).filter(p=>p.tempo);
+    const pbsHtml=pbsList.length
+      ? pbsList.slice(0,6).map(p=>`<div class="fav-pb-pill"><span style="color:var(--text2);font-size:12px">${p.spec}</span><span style="font-family:monospace;font-weight:600">${p.tempo}</span></div>`).join('')
+      : `<div class="fav-pb-pill" style="color:var(--text3);font-size:11px">Apri la scheda per caricare i PB</div>`;
+    const nomeEsc = a.nome.replace(/'/g,"\'");
+    return `<div class="fav-card" data-fav-id="${a.id}">
+      <div style="display:flex;align-items:center;">
+        <div class="drag-handle" ontouchstart="dragStart(event,'${a.id}')" style="padding:14px 10px 14px 14px;color:var(--text3);cursor:grab;touch-action:none;flex-shrink:0;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="6" r="1.5" fill="currentColor"/><circle cx="15" cy="6" r="1.5" fill="currentColor"/><circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="9" cy="18" r="1.5" fill="currentColor"/><circle cx="15" cy="18" r="1.5" fill="currentColor"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:12px 0;cursor:pointer;" onclick="openAthPage('${a.id}','${nomeEsc}','${a.nascita}')">
+          <div class="fav-avatar">${ini}</div>
+          <div style="flex:1;min-width:0;">
+            <p style="font-size:14px;font-weight:600;margin:0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.nome}</p>
+            <p style="font-size:12px;color:var(--text2);margin:0">${a.nascita ? 'n. '+a.nascita : ''}</p>
+          </div>
+        </div>
+        <button class="fav-remove" onclick="event.stopPropagation();removeFav('${a.id}')" style="padding:14px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="fav-pbs" style="padding:0 14px 12px;">${pbsHtml}</div>
+    </div>`;
+  });
+  list.innerHTML = items.join('');
+}
+
+// ── SEARCH ATLETI ─────────────────────────────────────────
+function resetAtleti(){
+  ['a-cognome','a-nome','a-dalyob','a-alyob'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['a-sesso','a-vasca','a-stagione','a-codice-gara','a-comitato'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(id==='a-sesso')el.value='M';
+    else if(id==='a-vasca')el.value='2';
+    else if(id==='a-stagione')el.value='2025';
+    else el.value='';
+  });
+  document.getElementById('atleti-results').style.display='none';
+}
+async function searchAtleti(page){
+  const stag=document.getElementById('a-stagione').value;
+  const params={sesso:document.getElementById('a-sesso').value,id_lunghezza_vasca:document.getElementById('a-vasca').value,kindtime:'1',stagione:stag==='0'?'':stag,anno:stagToAnno(stag),settore:'NUO',dalyob:document.getElementById('a-dalyob').value,alyob:document.getElementById('a-alyob').value,cognome:document.getElementById('a-cognome').value,nome:document.getElementById('a-nome').value,codice_gara:document.getElementById('a-codice-gara').value,all:'0',id_comitato:document.getElementById('a-comitato').value,limit:'20',id_atleta:''};
+  setLoading('a-btn',true,'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Cerca');
+  const resEl=document.getElementById('atleti-results'),listEl=document.getElementById('atleti-list'),statusEl=document.getElementById('atleti-status'),pagesEl=document.getElementById('atleti-pages');
+  resEl.style.display='block';listEl.innerHTML='';pagesEl.innerHTML='';
+  statusEl.innerHTML='<span style="color:var(--text2)">Ricerca in corso...</span>';
+  try{
+    const data=await callProxy('grricerca',params,page);
+    if(data.status!=='OK')throw new Error('Risposta non valida');
+    const doc=parseHTML(data.content||'');
+    const athletes=[];
+    doc.querySelectorAll('.row').forEach(row=>{
+      const el=row.querySelector('.atleta .collegamento');if(!el)return;
+      const n=row.querySelector('.nascita span');
+      athletes.push({nome:el.textContent.trim(),id:el.dataset.id||'',nascita:n?n.textContent.trim():''});
+    });
+    statusEl.innerHTML='<span>'+athletes.length+' atleti</span><span style="font-size:11px;color:var(--text3)">Tap nome · ★ preferiti</span>';
+    listEl.innerHTML=athletes.length?athletes.map(a=>{
+      const fav=isFav(a.id);
+      return `<div class="ath-card">
+        <div class="ath-card-body" onclick="openAthPage('${a.id}','${a.nome.replace(/'/g,"\\'")}','${a.nascita}')">
+          <div class="ath-name">${a.nome}</div><div class="ath-sub">n. ${a.nascita}</div>
+        </div>
+        <button class="ath-fav-btn${fav?' active':''}" id="fav-btn-${a.id}" onclick="quickFav('${a.id}','${a.nome.replace(/'/g,"\\'")}','${a.nascita}')"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fav-icon"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
+        <span class="ath-arrow" onclick="openAthPage('${a.id}','${a.nome.replace(/'/g,"\\'")}','${a.nascita}')">›</span>
+      </div>`;
+    }).join(''):'<div class="empty">🏊<br>Nessun atleta trovato</div>';
+
+  }catch(e){statusEl.innerHTML='';listEl.innerHTML='<div class="error-box">Errore: '+e.message+'</div>';}
+  setLoading('a-btn',false,'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Cerca');
+}
+function quickFav(id,nome,nascita){
+  const f=getFavs();
+  if(f[id]){delete f[id];toast('Rimosso');}else{f[id]={id,nome,nascita,societa:'',pbs:[],savedAt:Date.now()};toast('⭐ Aggiunto');}
+  saveFavs(f);updateFavBadge();
+  const btn=document.getElementById('fav-btn-'+id);
+  if(btn)btn.className='ath-fav-btn'+(isFav(id)?' active':'');
+}
+
+// ── ATHLETE PAGE ──────────────────────────────────────────
+async function openAthPage(id,nome,nascita){
+  currentAthlete={id,nome,nascita,societa:'',pbs:[]};
+  activeCodice={50:null,25:null};
+  if(charts[50]){charts[50].destroy();charts[50]=null;}
+  if(charts[25]){charts[25].destroy();charts[25]=null;}
+
+  // Reset UI
+  ['50','25'].forEach(v=>{
+    document.getElementById('pb-grid-'+v).innerHTML='';
+    document.getElementById('chart-title-'+v).textContent='Seleziona una specialità';
+    document.getElementById('chart-ph-'+v).innerHTML='<span style="color:var(--text3)">Tocca una specialità</span>';
+    document.getElementById('chart-ph-'+v).style.display='flex';
+    document.getElementById('chart-'+v).style.display='none';
+    document.getElementById('stats-'+v).innerHTML='';
+    document.getElementById('results-'+v).style.display='none';
+    document.getElementById('vc'+v).classList.remove('active');
+  });
+  document.getElementById('vtab50').className='vasca-tab-btn';
+  document.getElementById('vtab25').className='vasca-tab-btn';
+
+  const ini=nome.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  const fav=isFav(id);
+  document.getElementById('ath-hero').innerHTML=`
+    <div class="ath-avatar">${ini}</div>
+    <div style="flex:1;min-width:0;"><p style="font-size:16px;font-weight:600;margin:0 0 2px">${nome}</p><p id="ath-hero-meta" style="font-size:12px;color:var(--text2);margin:0">n. ${nascita}</p></div>
+    <button class="ath-hero-fav${fav?' active':''}" id="ath-hero-fav" onclick="toggleFav()"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="fav-icon"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>`;
+  document.getElementById('ath-page').classList.add('open');
+  document.body.style.overflow='hidden';
+  document.querySelector('.bottom-nav').style.display='none';
+
+  // Carica vasca 50m di default
+  await showVasca(50);
+}
+
+async function showVasca(v){
+  activeVasca=v;
+  // Aggiorna tab
+  document.getElementById('vtab50').className='vasca-tab-btn'+(v===50?' active-50':'');
+  document.getElementById('vtab25').className='vasca-tab-btn'+(v===25?' active-25':'');
+  // Mostra contenuto
+  document.getElementById('vc50').classList.toggle('active',v===50);
+  document.getElementById('vc25').classList.toggle('active',v===25);
+
+  const grid=document.getElementById('pb-grid-'+v);
+  // Se già popolato non ricaricare
+  if(grid.querySelector('.pb-card'))return;
+
+  grid.innerHTML='<div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:16px;color:var(--text2);font-size:13px;"><div class="spinner"></div>Carico Personal Best vasca '+v+'m...</div>';
+
+  const stag=document.getElementById('a-stagione').value;
+  const vasca=v===50?'2':'1';
+  const params={sesso:document.getElementById('a-sesso').value||'M',id_lunghezza_vasca:vasca,kindtime:'1',stagione:'',anno:'',settore:'NUO',cognome:currentAthlete.nome.split(' ')[0],all:'0',limit:'20',id_atleta:currentAthlete.id};
+
+  try{
+    const data=await callProxy('gratleta',params);
+    const doc=parseHTML(data.content||'');
+    const scheda=doc.querySelector('.scheda_atleta');
+    if(!scheda){grid.innerHTML='<div style="grid-column:1/-1;padding:16px;font-size:13px;color:var(--text3)">Nessun dato per vasca '+v+'m</div>';return;}
+    const soc=scheda.querySelector('.societa')?.textContent?.trim()||'';
+    if(soc&&v===50){
+      currentAthlete.societa=soc;
+      document.getElementById('ath-hero-meta').textContent=soc+' · n. '+currentAthlete.nascita;
+      const f=getFavs();if(f[currentAthlete.id]){f[currentAthlete.id].societa=soc;saveFavs(f);}
+    }
+    const pbs=[];
+    scheda.querySelectorAll('.personalbest .row').forEach(row=>{
+      const specEl=row.querySelector('.specialita .collegamento');if(!specEl)return;
+      pbs.push({spec:specEl.textContent.trim(),codice:specEl.dataset.id||'',tempo:row.querySelector('.tempo span')?.textContent?.trim()||''});
+    });
+    if(v===50){currentAthlete.pbs=pbs;const f=getFavs();if(f[currentAthlete.id]){f[currentAthlete.id].pbs=pbs;saveFavs(f);}}
+    const color=v===50?'var(--accent)':'var(--amber)';
+    const activeClass=v===50?'active50':'active25';
+    grid.innerHTML=pbs.length?pbs.map(p=>`
+      <div class="pb-card${activeCodice[v]===p.codice?' '+activeClass:''}" data-codice="${p.codice}" onclick="loadSpecialty(${v},'${p.codice}','${p.spec.replace(/'/g,"\\'")}')">
+        <p class="pb-spec">${p.spec}</p>
+        <p class="pb-time" style="color:${color}">${p.tempo||'—'}</p>
+      </div>`).join(''):'<div style="grid-column:1/-1;padding:16px;font-size:13px;color:var(--text3)">Nessun PB registrato per vasca '+v+'m</div>';
+  }catch(e){
+    grid.innerHTML='<div style="grid-column:1/-1;padding:16px;font-size:13px;color:var(--text3)">Errore caricamento</div>';
+  }
+}
+
+async function loadSpecialty(v,codice,specName){
+  activeCodice[v]=codice;
+  // Aggiorna active card
+  const grid=document.getElementById('pb-grid-'+v);
+  const activeClass=v===50?'active50':'active25';
+  grid.querySelectorAll('.pb-card').forEach(c=>c.classList.remove('active50','active25'));
+  const cards=grid.querySelectorAll('.pb-card');
+  // ri-render per aggiornare active
+  const pbs=v===50?currentAthlete.pbs:[];
+  // Aggiorna solo la classe
+  grid.querySelectorAll('.pb-card').forEach((c,i)=>{
+    if(pbs[i]&&pbs[i].codice===codice)c.classList.add(activeClass);
+  });
+
+  document.getElementById('chart-title-'+v).textContent=specName;
+  document.getElementById('chart-'+v).style.display='none';
+  document.getElementById('chart-ph-'+v).style.display='flex';
+  document.getElementById('chart-ph-'+v).innerHTML='<div class="spinner"></div><span style="color:var(--text2)">Carico storico...</span>';
+  document.getElementById('stats-'+v).innerHTML='';
+  document.getElementById('results-'+v).style.display='none';
+  if(charts[v]){charts[v].destroy();charts[v]=null;}
+
+  const params={sesso:document.getElementById('a-sesso').value||'M',id_lunghezza_vasca:'0',kindtime:'1',stagione:'',anno:'',settore:'NUO',codice_gara:codice,all:'0',limit:'100',id_atleta:currentAthlete.id};
+  try{
+    const data=await callProxy('grspecialitaatleta',params);
+    const doc=parseHTML(data.content||'');
+    let rows=[];
+    doc.querySelectorAll('.vasca').forEach(vEl=>{
+      const h4=vEl.querySelector('h4')?.textContent?.trim()||'';
+      const isTarget=v===25?h4.includes('25'):!h4.includes('25');
+      if(!isTarget)return;
+      vEl.querySelectorAll('.row').forEach(row=>{
+        const t=row.querySelector('.tempo span')?.textContent?.trim();
+        const d=row.querySelector('.data span')?.textContent?.trim();
+        const luogoEl=row.querySelector('.luogo .collegamento');
+        const l=luogoEl?.textContent?.trim()||row.querySelector('.luogo span')?.textContent?.trim()||'';
+        const idEvento=luogoEl?.dataset?.id||'';
+        if(t&&d)rows.push({t,d:parseItalianDate(d),l,idEvento});
+      });
+    });
+    // Filtra: miglior tempo per evento
+    const byEvento={};
+    rows.forEach(r=>{
+      const k=r.idEvento||(r.d+'|'+r.l.toUpperCase());
+      if(!byEvento[k]||timeToSec(r.t)<timeToSec(byEvento[k].t))byEvento[k]=r;
+    });
+    rows=Object.values(byEvento).sort((a,b)=>a.d.localeCompare(b.d));
+    if(!rows.length){
+      document.getElementById('chart-ph-'+v).innerHTML='<span style="color:var(--text3);font-size:13px;">Nessun dato storico</span>';
+      return;
+    }
+    renderChart(v,rows,specName);
+  }catch(e){
+    document.getElementById('chart-ph-'+v).innerHTML='<span style="color:var(--text2);font-size:13px;">Errore: '+e.message+'</span>';
+  }
+}
+
+function renderChart(v,sorted,specName){
+  const secVals=sorted.map(r=>timeToSec(r.t)).filter(x=>x!==null);
+  const labels=sorted.map(r=>{const[y,m,d]=r.d.split('-');return d+'/'+m+'/'+y.slice(2);});
+  let minPB=secVals[0];
+  const pbLine=secVals.map(x=>{if(x<=minPB){minPB=x;return x;}return minPB;});
+  const minVal=Math.min(...secVals),maxVal=Math.max(...secVals);
+  const pad=(maxVal-minVal)*0.18+0.5;
+  const minIdx=secVals.indexOf(minVal);
+  const color=v===50?'#3b8de0':'#f59e0b';
+  const colorGreen='#22c55e';
+  document.getElementById('chart-ph-'+v).style.display='none';
+  const canvas=document.getElementById('chart-'+v);
+  canvas.style.display='block';
+  if(charts[v]){charts[v].destroy();charts[v]=null;}
+  charts[v]=new Chart(canvas.getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Prestazione',data:secVals,borderColor:color,backgroundColor:color.replace(')',',0.07)').replace('rgb','rgba'),borderWidth:2,
+        pointBackgroundColor:secVals.map((_,i)=>i===minIdx?colorGreen:color),
+        pointBorderColor:secVals.map((_,i)=>i===minIdx?colorGreen:color),
+        pointRadius:secVals.map((_,i)=>i===minIdx?10:5),
+      pointHoverRadius:secVals.map((_,i)=>i===minIdx?12:7),
+      tension:0.3,fill:false,borderWidth:2.5},
+      {label:'PB progressivo',data:pbLine,borderColor:colorGreen,borderWidth:1.5,borderDash:[5,4],pointRadius:0,tension:0,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>secToTime(ctx.parsed.y),afterLabel:ctx=>ctx.dataIndex===minIdx?'🏆 Personal Best':''}}},
+      scales:{
+        y:{reverse:true,min:minVal-pad*0.5,max:maxVal+pad*0.5,
+          ticks:{callback:x=>secToTime(x),font:{size:11},color:'#8899bb'},
+          grid:{color:'rgba(136,153,187,0.08)'}},
+        x:{ticks:{font:{size:10},color:'#8899bb',maxTicksLimit:8,maxRotation:45},grid:{display:false}}
+      }
+    }
+  });
+  const improvement=maxVal-minVal;
+  const firstDate=sorted[0].d.split('-');
+  document.getElementById('stats-'+v).innerHTML=`
+    <div class="stat-card"><p class="stat-label">Personal Best</p><p class="stat-val" style="color:var(--green)">${secToTime(minVal)}</p></div>
+    <div class="stat-card"><p class="stat-label">Miglioramento</p><p class="stat-val" style="color:var(--green)">-${improvement.toFixed(2)}s</p></div>
+    <div class="stat-card"><p class="stat-label">Prima gara</p><p class="stat-val" style="font-size:13px">${firstDate[2]}/${firstDate[1]}/${firstDate[0].slice(2)}</p></div>`;
+  let lastYear='';
+  document.getElementById('tbody-'+v).innerHTML=[...sorted].reverse().map(r=>{
+    const sec=timeToSec(r.t),isPB=sec===minVal;
+    const[y,m,d]=r.d.split('-');
+    let div='';if(y!==lastYear){lastYear=y;div=`<tr class="year-divider"><td colspan="3">${y}</td></tr>`;}
+    return div+`<tr><td style="color:var(--text2)">${d}/${m}/${y}</td><td><span style="font-family:monospace;font-weight:600">${r.t}</span>${isPB?'<span class="pb-badge">PB</span>':''}</td><td style="color:var(--text2)">${r.l}</td></tr>`;
+  }).join('');
+  document.getElementById('results-'+v).style.display='block';
+}
+
+// ── DRAG & DROP PREFERITI ────────────────────────────────
+let dragId=null, dragEl=null, ghostEl=null, startY=0, lastOverId=null;
+
+function dragStart(e, id){
+  e.stopPropagation();
+  dragId=id;
+  dragEl=e.currentTarget.closest('.fav-card');
+  startY=e.touches[0].clientY;
+  dragEl.classList.add('dragging');
+
+  // Ghost element
+  ghostEl=dragEl.cloneNode(true);
+  const rect=dragEl.getBoundingClientRect();
+  ghostEl.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;z-index:999;opacity:0.92;pointer-events:none;border-radius:12px;background:var(--surface2);border:1.5px solid var(--accent);box-shadow:0 8px 24px rgba(0,0,0,0.5);transform:translateY(0);transition:none;`;
+  document.body.appendChild(ghostEl);
+
+  document.addEventListener('touchmove', dragMove, {passive:false});
+  document.addEventListener('touchend', dragEnd);
+}
+
+function dragMove(e){
+  if(!ghostEl||!dragEl) return;
+  e.preventDefault();
+  const currentY=e.touches[0].clientY;
+  const dy=currentY - startY;
+  ghostEl.style.transform=`translateY(${dy}px)`;
+
+  // Trova card sotto il tocco corrente
+  ghostEl.style.display='none';
+  const el=document.elementFromPoint(e.touches[0].clientX, currentY);
+  ghostEl.style.display='';
+  const overCard=el?el.closest('.fav-card:not(.dragging)'):null;
+  
+  document.querySelectorAll('#fav-list .fav-card').forEach(c=>c.classList.remove('drag-over'));
+  if(overCard){
+    overCard.classList.add('drag-over');
+    lastOverId=overCard.dataset.favId;
+  } else {
+    lastOverId=null;
+  }
+}
+
+function dragEnd(){
+  document.removeEventListener('touchmove', dragMove);
+  document.removeEventListener('touchend', dragEnd);
+  if(ghostEl){ ghostEl.remove(); ghostEl=null; }
+  if(dragEl) dragEl.classList.remove('dragging');
+  document.querySelectorAll('.fav-card').forEach(c=>c.classList.remove('drag-over'));
+
+  if(dragId && lastOverId && dragId!==lastOverId){
+    const f=getFavs();
+    const keys=Object.keys(f);
+    const fromIdx=keys.indexOf(dragId);
+    const toIdx=keys.indexOf(lastOverId);
+    if(fromIdx!==-1 && toIdx!==-1){
+      keys.splice(fromIdx,1);
+      keys.splice(toIdx,0,dragId);
+      const newF={};
+      keys.forEach(k=>newF[k]=f[k]);
+      saveFavs(newF);
+      renderFavView();
+    }
+  }
+  dragId=null; dragEl=null; lastOverId=null;
+}
+
+function closeAthPage(){
+  document.getElementById('ath-page').classList.remove('open');
+  document.body.style.overflow='';
+  document.querySelector('.bottom-nav').style.display='flex';
+  renderFavView();
+  if(charts[50]){charts[50].destroy();charts[50]=null;}
+  if(charts[25]){charts[25].destroy();charts[25]=null;}
+}
+
+// ── GRADUATORIE ───────────────────────────────────────────
+async function searchGraduatorie(page){
+  const stag=document.getElementById('g-stagione').value;
+  const params={sesso:document.getElementById('g-sesso').value,id_lunghezza_vasca:document.getElementById('g-vasca').value,kindtime:'1',stagione:stag==='0'?'':stag,anno:stagToAnno(stag),settore:'NUO',dalyob:document.getElementById('g-dalyob').value,alyob:document.getElementById('g-alyob').value,codice_gara:document.getElementById('g-codice-gara').value,all:'0',id_comitato:document.getElementById('g-comitato').value,limit:'100',id_atleta:''};
+  setLoading('g-btn',true,'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Cerca graduatorie');
+  const resEl=document.getElementById('grad-results'),listEl=document.getElementById('grad-list'),statusEl=document.getElementById('grad-status'),pagesEl=document.getElementById('grad-pages');
+  resEl.style.display='block';listEl.innerHTML='';pagesEl.innerHTML='';
+  statusEl.innerHTML='<span style="color:var(--text2)">Carico...</span>';
+  try{
+    const data=await callProxy('grricerca',params,page);
+    if(data.status!=='OK')throw new Error('Risposta non valida');
+    const doc=parseHTML(data.content||'');
+    const vasca=doc.querySelector('.info .vasca')?.textContent?.trim()||'';
+    const gara=doc.querySelector('.info .gara')?.textContent?.trim()||'';
+    const sesso=doc.querySelector('.info .sesso')?.textContent?.trim()||'';
+    const yob=doc.querySelector('.info .yob')?.textContent?.trim()||'';
+    const rows=[];
+    doc.querySelectorAll('.row').forEach(row=>{
+      const pos=row.querySelector('.posizione span')?.textContent?.trim()||'';
+      const tempoDiv=row.querySelector('.tempo');
+      const tempo=tempoDiv?tempoDiv.childNodes[0]?.textContent?.trim()||'':'';
+      const atletaEl=row.querySelector('.atleta .collegamento');
+      const atleta=atletaEl?.textContent?.trim()||'';
+      const athId=atletaEl?.dataset?.id||'';
+      const anno=row.querySelector('.nascita span')?.textContent?.trim()||'';
+      const soc=row.querySelector('.societa span')?.textContent?.trim()||'';
+      const data2=row.querySelector('.data span')?.textContent?.trim()||'';
+      const luogo=row.querySelector('.luogo .collegamento')?.textContent?.trim()||row.querySelector('.luogo span')?.textContent?.trim()||'';
+      if(atleta&&tempo)rows.push({pos,tempo,atleta,athId,anno,soc,data:data2,luogo});
+    });
+    const infoHtml=[vasca,gara,sesso,yob].filter(Boolean).map(s=>`<span style="background:var(--surface2);padding:2px 8px;border-radius:99px;font-size:12px">${s}</span>`).join('');
+    statusEl.innerHTML='<span>'+rows.length+' risultati</span>';
+    if(rows.length){
+      listEl.innerHTML=(infoHtml?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;color:var(--text2)">${infoHtml}</div>`:'')+
+        '<div class="grad-wrap"><div style="overflow-x:auto"><table><thead><tr><th style="width:32px">Pos.</th><th>Tempo</th><th>Atleta</th><th>Anno</th><th>Società</th><th>Data · Luogo</th></tr></thead><tbody>'+
+        rows.map((r,i)=>`<tr style="${i%2?'background:rgba(255,255,255,0.02)':''}">
+          <td style="color:var(--text3);font-size:12px;text-align:center">${r.pos}</td>
+          <td><span class="tempo-mono">${r.tempo}</span></td>
+          <td style="font-weight:600;cursor:pointer;color:var(--accent)" onclick="openAthPage('${r.athId}','${r.atleta.replace(/'/g,"\\'")}','')">${r.atleta}</td>
+          <td style="color:var(--text2)">${r.anno}</td>
+          <td style="font-size:11px;color:var(--text2)">${r.soc}</td>
+          <td style="font-size:11px;color:var(--text2)">${r.data}<br>${r.luogo}</td>
+        </tr>`).join('')+'</tbody></table></div></div>';
+
+    }else{listEl.innerHTML='<div class="empty">🏆<br>Nessun risultato</div>';}
+  }catch(e){statusEl.innerHTML='';listEl.innerHTML='<div class="error-box">Errore: '+e.message+'</div>';}
+  setLoading('g-btn',false,'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> Cerca graduatorie');
+}
+
+// ── INIT ──────────────────────────────────────────────────
+document.getElementById('a-nome')?.addEventListener('keydown',e=>{if(e.key==='Enter')searchAtleti(1);});
+updateFavBadge();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
